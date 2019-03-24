@@ -7,7 +7,7 @@ support both HTTP and WebSocket requests.
 ## Install dependency
 
 ```bash
-npm install --save git+https://github.com/davidje13/superwstest.git#semver:^1.0.0
+npm install --save-dev git+https://github.com/davidje13/superwstest.git#semver:^1.0.0
 ```
 
 ## Usage
