@@ -50,7 +50,12 @@ const wsMethods = {
   expectText: (ws, check) => wsMethods.expectMessage(ws, msgText, check),
   expectJson: (ws, check) => wsMethods.expectMessage(ws, msgJson, check),
   close: (ws) => ws.close(),
-  expectClosed: (ws) => ws.closed,
+  expectClosed: async (ws, expectedCode = null) => {
+    const code = await ws.closed;
+    if (expectedCode !== null && code !== expectedCode) {
+      throw new Error(`Expected close code ${expectedCode}, got ${code}`);
+    }
+  },
 };
 
 function wsRequest(url) {
@@ -73,7 +78,7 @@ function wsRequest(url) {
     ws.on('message', (msg) => ws.messages.push(msg));
     ws.on('error', (err) => errors.push(err));
     ws.on('error', reject);
-    ws.on('close', () => closed.push());
+    ws.on('close', (code) => closed.push(code));
     ws.on('open', () => {
       ws.removeListener('error', reject);
       resolve(ws);
