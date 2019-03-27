@@ -47,7 +47,7 @@ describe('superwstest', () => {
     await request(server)
       .ws('/path/ws')
       .sendText('trigger-server-close')
-      .expectClosed(4321);
+      .expectClosed(4321, 'Oops');
   });
 
   it('produces errors if an expectation is not met', async () => {
@@ -100,6 +100,24 @@ describe('superwstest', () => {
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message)
       .toEqual('Expected close code 4444, got 4321');
+  });
+
+  it('produces errors if the connection closes with an unexpected message', async () => {
+    let capturedError = null;
+
+    try {
+      await request(server)
+        .ws('/path/ws')
+        .expectText('hello')
+        .sendText('trigger-server-close')
+        .expectClosed(4321, 'Nope');
+    } catch (e) {
+      capturedError = e;
+    }
+
+    expect(capturedError).not.toEqual(null);
+    expect(capturedError.message)
+      .toEqual('Expected close message \'Nope\', got \'Oops\'');
   });
 
   it('produces errors if the connection closes while sending', async () => {

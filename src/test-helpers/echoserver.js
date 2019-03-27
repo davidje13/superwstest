@@ -8,7 +8,7 @@ export default () => {
   wss.on('connection', (ws) => {
     ws.on('message', (message) => {
       if (message === 'trigger-server-close') {
-        ws.close(4321);
+        ws.close(4321, 'Oops');
         return;
       }
       ws.send(`echo ${message}`);
