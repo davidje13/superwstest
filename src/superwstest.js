@@ -49,7 +49,7 @@ const wsMethods = {
   },
   expectText: (ws, check) => wsMethods.expectMessage(ws, msgText, check),
   expectJson: (ws, check) => wsMethods.expectMessage(ws, msgJson, check),
-  close: (ws) => ws.close(),
+  close: (ws, code, message) => ws.close(code, message),
   expectClosed: async (ws, expectedCode = null, expectedMessage = null) => {
     const { code, message } = await ws.closed;
     if (expectedCode !== null && code !== expectedCode) {

@@ -21,8 +21,8 @@ describe('superwstest', () => {
       .expectText('echo foo')
       .sendText('abc')
       .expectText('echo abc')
-      .close()
-      .expectClosed();
+      .close(1001)
+      .expectClosed(1001);
   });
 
   it('closes connections automatically on server shutdown', async () => {
