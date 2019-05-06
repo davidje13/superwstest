@@ -7,7 +7,7 @@ support both HTTP and WebSocket requests.
 ## Install dependency
 
 ```bash
-npm install --save-dev git+https://github.com/davidje13/superwstest.git#semver:^1.0.2
+npm install --save-dev git+https://github.com/davidje13/superwstest.git#semver:^1.0.3
 ```
 
 ## Usage
@@ -85,3 +85,6 @@ methods attached:
   `WebSocket.send`).
 - `close`: closes the socket.
 - `expectClosed`: waits for the socket to be closed.
+- `expectConnectionError`: expect the initial connection handshake to
+  fail. Optionally checks for a specific HTTP status code.
+  *note: if you use this, it must be the only invocation in the chain*

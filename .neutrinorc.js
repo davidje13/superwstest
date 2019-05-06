@@ -1,18 +1,22 @@
+const airbnbBase = require('@neutrinojs/airbnb-base');
+const library = require('@neutrinojs/library');
+const jest = require('@neutrinojs/jest');
+
 module.exports = {
   options: {
     root: __dirname,
     tests: 'src',
   },
   use: [
-    ['@neutrinojs/airbnb-base', {
+    airbnbBase({
       eslint: {
         rules: {
           'arrow-parens': ['error', 'always'],
           'operator-linebreak': ['error', 'after'],
         },
       },
-    }],
-    ['@neutrinojs/library', {
+    }),
+    library({
       name: 'superwstest',
       target: 'node',
       babel: {
@@ -25,7 +29,7 @@ module.exports = {
           }],
         ],
       },
-    }],
-    '@neutrinojs/jest'
-  ]
+    }),
+    jest(),
+  ],
 };

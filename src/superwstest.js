@@ -23,10 +23,19 @@ function msgJson(data) {
   return JSON.parse(msgText(data));
 }
 
+function sendWithError(ws, message) {
+  // https://github.com/websockets/ws/pull/1532
+  ws.send(message, (err) => {
+    if (err) {
+      throw err;
+    }
+  });
+}
+
 const wsMethods = {
-  send: (ws, msg) => ws.send(msg),
-  sendText: (ws, msg) => ws.send(String(msg)),
-  sendJson: (ws, msg) => ws.send(JSON.stringify(msg)),
+  send: (ws, msg) => sendWithError(ws, msg),
+  sendText: (ws, msg) => sendWithError(ws, String(msg)),
+  sendJson: (ws, msg) => sendWithError(ws, JSON.stringify(msg)),
   wait: (ws, ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   expectMessage: async (ws, conversion, check = null) => {
     const received = await Promise.race([
@@ -61,6 +70,23 @@ const wsMethods = {
   },
 };
 
+function checkConnectionError(o, expectedCode) {
+  if (!o || !o.error) {
+    throw new Error('Expected connection failure, but succeeded');
+  }
+  if (!expectedCode) {
+    return;
+  }
+  let expected = expectedCode;
+  if (typeof expectedCode === 'number') {
+    expected = `Unexpected server response: ${expectedCode}`;
+  }
+  const actual = o.error.message;
+  if (actual !== expected) {
+    throw new Error(`Expected connection failure with message '${expected}', got '${actual}'`);
+  }
+}
+
 function wsRequest(url) {
   let chain = new Promise((resolve, reject) => {
     const ws = new WebSocket(url);
@@ -79,11 +105,11 @@ function wsRequest(url) {
     });
 
     ws.on('message', (msg) => ws.messages.push(msg));
-    ws.on('error', (err) => errors.push(err));
     ws.on('error', reject);
     ws.on('close', (code, message) => closed.push({ code, message }));
     ws.on('open', () => {
       ws.removeListener('error', reject);
+      ws.on('error', (err) => errors.push(err));
       resolve(ws);
     });
   });
@@ -98,12 +124,23 @@ function wsRequest(url) {
       fn(ws, ...args),
       ws.firstError,
     ]).then(() => ws));
+
+    delete chain.expectConnectionError;
     return wrapPromise(chain);
   };
 
   Object.keys(wsMethods).forEach((method) => {
     methods[method] = thenDo(wsMethods[method]);
   });
+
+  chain.expectConnectionError = (expectedCode = null) => {
+    chain = chain
+      .catch((error) => ({ error }))
+      .then((o) => checkConnectionError(o, expectedCode));
+
+    delete chain.expectConnectionError;
+    return chain;
+  };
 
   return wrapPromise(chain);
 }

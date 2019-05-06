@@ -50,6 +50,22 @@ describe('superwstest', () => {
       .expectClosed(4321, 'Oops');
   });
 
+  it('produces errors if the connection unexpectedly succeeds', async () => {
+    let capturedError = null;
+
+    try {
+      await request(server)
+        .ws('/anything')
+        .expectConnectionError();
+    } catch (e) {
+      capturedError = e;
+    }
+
+    expect(capturedError).not.toEqual(null);
+    expect(capturedError.message)
+      .toEqual('Expected connection failure, but succeeded');
+  });
+
   it('produces errors if an expectation is not met', async () => {
     let capturedError = null;
 
