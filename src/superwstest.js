@@ -87,9 +87,9 @@ function checkConnectionError(o, expectedCode) {
   }
 }
 
-function wsRequest(url) {
+function wsRequest(url, protocols, options) {
   let chain = new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, protocols, options);
 
     // ws.on('open', () => console.log('OPEN'));
     // ws.on('error', (e) => console.log('ERROR', e));
@@ -183,7 +183,7 @@ export default (server) => {
   registerShutdown(server);
 
   const obj = request(server);
-  obj.ws = (path) => wsRequest(getServerWsPath(server, path));
+  obj.ws = (path, ...args) => wsRequest(getServerWsPath(server, path), ...args);
 
   return obj;
 };

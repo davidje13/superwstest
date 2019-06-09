@@ -36,6 +36,12 @@ describe('superwstest', () => {
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
+  it('propagates protocol and options', async () => {
+    await request(server)
+      .ws('/path/ws', ['show-foo-header'], { headers: { Foo: 'bar' } })
+      .expectText('show-foo-header protocol: bar');
+  });
+
   it('catches close events', async () => {
     await request(server)
       .ws('/path/ws')
