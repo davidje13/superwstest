@@ -3,9 +3,11 @@
   "version": "1.0.4",
   "description": "supertest with added WebSocket capabilities",
   "files": [
-    "build/**/*"
+    "build/**/*",
+    "index.d.ts"
   ],
   "main": "build/index.js",
+  "types": "index.d.ts",
   "scripts": {
     "build": "webpack --mode production",
     "lint": "eslint --format codeframe --ext mjs,jsx,js src",
@@ -32,10 +34,12 @@
   },
   "homepage": "https://github.com/davidje13/superwstest#readme",
   "dependencies": {
+    "@types/supertest": "^2.0.7",
+    "@types/ws": "^6.0.1",
     "blocking-queue": "0.0.1",
     "fast-deep-equal": "^2.0.1",
     "supertest": "^4.0.2",
-    "ws": "^7.0.0"
+    "ws": "^7.0.1"
   },
   "devDependencies": {
     "@neutrinojs/airbnb-base": "^9.0.0-rc.3",
@@ -44,7 +48,7 @@
     "eslint": "^5.16.0",
     "jest": "^24.8.0",
     "neutrino": "^9.0.0-rc.3",
-    "webpack": "^4.33.0",
-    "webpack-cli": "^3.3.3"
+    "webpack": "^4.35.0",
+    "webpack-cli": "^3.3.5"
   }
 }

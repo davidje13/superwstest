@@ -5,6 +5,9 @@
       location = "container:src">
    </FileRef>
    <FileRef
+      location = "container:index.d.ts">
+   </FileRef>
+   <FileRef
       location = "container:package.json">
    </FileRef>
    <FileRef
