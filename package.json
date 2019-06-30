@@ -1,6 +1,6 @@
 {
   "name": "superwstest",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "supertest with added WebSocket capabilities",
   "files": [
     "build/**/*",
