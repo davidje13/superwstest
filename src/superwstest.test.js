@@ -2,6 +2,10 @@ import WebSocket from 'ws';
 import makeEchoServer from './test-helpers/echoserver';
 import request from './superwstest';
 
+function delay(millis) {
+  return new Promise((r) => setTimeout(r, millis));
+}
+
 describe('superwstest', () => {
   const server = makeEchoServer();
 
@@ -34,6 +38,39 @@ describe('superwstest', () => {
 
     await new Promise(server.close);
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
+  });
+
+  it('waits for the given shutdownDelay before closing connections', async () => {
+    const ws = await request(server, { shutdownDelay: 100 })
+      .ws('/path/ws')
+      .expectText('hello');
+
+    expect(ws.readyState).toEqual(WebSocket.OPEN);
+
+    server.close(); // no await
+
+    await delay(50);
+    expect(ws.readyState).toEqual(WebSocket.OPEN);
+
+    await delay(100);
+    expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
+  });
+
+  it('shuts down immediately if all connections close themselves', async () => {
+    let closing;
+
+    await request(server, { shutdownDelay: 6000 })
+      .ws('/path/ws')
+      .exec(async (ws) => {
+        closing = new Promise(server.close);
+
+        await delay(100);
+        expect(ws.readyState).toEqual(WebSocket.OPEN); // not closed yet
+      })
+      .close() // close connection
+      .expectClosed();
+
+    await closing; // server closes when all connections are closed
   });
 
   it('propagates protocol and options', async () => {
@@ -158,6 +195,26 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message).toContain('WebSocket is not open');
+  });
+
+  it('executes arbitrary code via exec', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectText('hello')
+      .exec((ws) => ws.send('foo'))
+      .expectText('echo foo');
+  });
+
+  it('waits for promises returned by exec', async () => {
+    let delayComplete = false;
+    await request(server)
+      .ws('/path/ws')
+      .exec(async () => {
+        await delay(50);
+        delayComplete = true;
+      });
+
+    expect(delayComplete).toEqual(true);
   });
 
   it('produces errors if reading after the connection has closed', async () => {

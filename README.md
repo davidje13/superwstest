@@ -79,6 +79,10 @@ methods attached:
   using `JSON.parse`, then checks that it matches the given data or
   function.
 - `wait`: adds a delay of a number of milliseconds using `setTimeout`.
+- `exec`: invokes the given function. If the function returns a
+  promise, waits for the promise to resolve.
+  *node: this differs from the `then` because you can continue to chain
+  web socket actions and expectations*
 - `sendText`: sends the given text.
 - `sendJson`: sends the given JSON as text using `JSON.stringify`.
 - `send`: sends a raw message (accepts any types accepted by
@@ -88,3 +92,11 @@ methods attached:
 - `expectConnectionError`: expect the initial connection handshake to
   fail. Optionally checks for a specific HTTP status code.
   *note: if you use this, it must be the only invocation in the chain*
+
+You can also pass options to `request`:
+
+- `request(myServer, { shutdownDelay: 500 }).ws(path)`: wait up to
+  the given number of milliseconds for connections to close by
+  themselves before forcing a shutdown when `close` is called on the
+  server. By default this is 0 (i.e. all connections are closed
+  immediately).

@@ -37,6 +37,7 @@ const wsMethods = {
   sendText: (ws, msg) => sendWithError(ws, String(msg)),
   sendJson: (ws, msg) => sendWithError(ws, JSON.stringify(msg)),
   wait: (ws, ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  exec: (ws, fn) => fn(ws),
   expectMessage: async (ws, conversion, check = null) => {
     const received = await Promise.race([
       ws.messages.pop(),
@@ -147,11 +148,39 @@ function wsRequest(url, protocols, options) {
 
 const adaptedServers = new WeakSet();
 
-function registerShutdown(server) {
+function performShutdown(sockets, shutdownDelay) {
+  if (shutdownDelay <= 0) {
+    [...sockets].forEach((s) => s.end());
+    return;
+  }
+
+  const expire = Date.now() + shutdownDelay;
+
+  [...sockets].forEach(async (s) => {
+    while (Date.now() < expire && sockets.has(s)) {
+      /* eslint-disable-next-line no-await-in-loop */ // polling
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    if (sockets.has(s)) {
+      s.end();
+    }
+  });
+}
+
+function registerShutdown(server, shutdownDelay) {
   if (adaptedServers.has(server)) {
+    /* eslint-disable-next-line no-param-reassign */ // update test config
+    server.testConfig.shutdownDelay = Math.max(
+      server.testConfig.shutdownDelay,
+      shutdownDelay,
+    );
     return;
   }
   adaptedServers.add(server);
+
+  const testConfig = { shutdownDelay };
+  /* eslint-disable-next-line no-param-reassign */ // share test config
+  server.testConfig = testConfig;
 
   const sockets = new Set();
   server.on('connection', (s) => {
@@ -164,7 +193,8 @@ function registerShutdown(server) {
   /* eslint-disable-next-line no-param-reassign */ // ensure clean shutdown
   server.close = (callback) => {
     if (server.address()) {
-      [...sockets].forEach((s) => s.end());
+      performShutdown(sockets, testConfig.shutdownDelay);
+      testConfig.shutdownDelay = 0;
       originalClose(callback);
     } else if (callback) {
       callback();
@@ -172,7 +202,7 @@ function registerShutdown(server) {
   };
 }
 
-export default (server) => {
+export default (server, { shutdownDelay = 0 } = {}) => {
   if (!server.address()) {
     // see https://github.com/visionmedia/supertest/issues/566
     throw new Error(
@@ -180,7 +210,7 @@ export default (server) => {
     );
   }
 
-  registerShutdown(server);
+  registerShutdown(server, shutdownDelay);
 
   const obj = request(server);
   obj.ws = (path, ...args) => wsRequest(getServerWsPath(server, path), ...args);

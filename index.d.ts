@@ -9,6 +9,7 @@ declare module 'superwstest' {
     sendJson(message: string | object | number | null): this;
 
     wait(milliseconds: number): this;
+    exec(fn: (ws: WebSocket) => (Promise<void> | void)): this;
 
     expectMessage<T>(
       conversion: (received: string) => T,
@@ -39,5 +40,12 @@ declare module 'superwstest' {
     ws: (path: string, options?: object) => WSChain;
   }
 
-  export default function request(app: Server): SuperWSTest;
+  interface RequestOptions {
+    shutdownDelay?: number;
+  }
+
+  export default function request(
+    app: Server,
+    options?: RequestOptions,
+  ): SuperWSTest;
 }
