@@ -81,7 +81,7 @@ methods attached:
 - `wait`: adds a delay of a number of milliseconds using `setTimeout`.
 - `exec`: invokes the given function. If the function returns a
   promise, waits for the promise to resolve.
-  *node: this differs from the `then` because you can continue to chain
+  *note: this differs from `then` because you can continue to chain
   web socket actions and expectations*
 - `sendText`: sends the given text.
 - `sendJson`: sends the given JSON as text using `JSON.stringify`.
