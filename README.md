@@ -40,7 +40,7 @@ import server from './myServer';
 
 describe('MyThing', () => {
   beforeEach((done) => {
-    server.listen(0, done);
+    server.listen(0, 'localhost', done);
   });
 
   afterEach((done) => {
