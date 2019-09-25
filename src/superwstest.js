@@ -146,8 +146,6 @@ function wsRequest(url, protocols, options) {
   return wrapPromise(chain);
 }
 
-const adaptedServers = new WeakSet();
-
 function performShutdown(sockets, shutdownDelay) {
   if (shutdownDelay <= 0) {
     [...sockets].forEach((s) => s.end());
@@ -167,20 +165,19 @@ function performShutdown(sockets, shutdownDelay) {
   });
 }
 
+const serverTestConfigs = new WeakMap();
+
 function registerShutdown(server, shutdownDelay) {
-  if (adaptedServers.has(server)) {
-    /* eslint-disable-next-line no-param-reassign */ // update test config
-    server.testConfig.shutdownDelay = Math.max(
-      server.testConfig.shutdownDelay,
+  let testConfig = serverTestConfigs.get(server);
+  if (testConfig) {
+    testConfig.shutdownDelay = Math.max(
+      testConfig.shutdownDelay,
       shutdownDelay,
     );
     return;
   }
-  adaptedServers.add(server);
-
-  const testConfig = { shutdownDelay };
-  /* eslint-disable-next-line no-param-reassign */ // share test config
-  server.testConfig = testConfig;
+  testConfig = { shutdownDelay };
+  serverTestConfigs.set(server, testConfig);
 
   const sockets = new Set();
   server.on('connection', (s) => {
