@@ -42,12 +42,12 @@
     "ws": "^7.1.2"
   },
   "devDependencies": {
-    "@neutrinojs/airbnb-base": "^9.0.0-rc.3",
-    "@neutrinojs/jest": "^9.0.0-rc.3",
-    "@neutrinojs/library": "^9.0.0-rc.3",
-    "eslint": "^5.16.0",
+    "@neutrinojs/airbnb-base": "^9.0.0-rc.4",
+    "@neutrinojs/jest": "^9.0.0-rc.4",
+    "@neutrinojs/library": "^9.0.0-rc.4",
+    "eslint": "^6.5.1",
     "jest": "^24.9.0",
-    "neutrino": "^9.0.0-rc.3",
+    "neutrino": "^9.0.0-rc.4",
     "webpack": "^4.41.0",
     "webpack-cli": "^3.3.9"
   }
