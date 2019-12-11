@@ -13,6 +13,7 @@ module.exports = {
         rules: {
           'arrow-parens': ['error', 'always'],
           'operator-linebreak': ['error', 'after'],
+          'jest/expect-expect': ['off'],
         },
       },
     }),
