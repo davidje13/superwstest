@@ -21,10 +21,10 @@ declare module 'superwstest' {
       test: (message: T) => boolean,
     ): this;
 
-    expectText(expected?: string | null): this;
+    expectText(expected?: string): this;
     expectText(test: (message: string) => boolean): this;
 
-    expectJson(expected?: string | null): this;
+    expectJson(expected?: any): this;
     expectJson(test: (message: any) => boolean): this;
 
     close(code?: number, message?: string): this;

@@ -37,6 +37,6 @@ describe('superwstest-errors', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message)
-      .toEqual('Expected connection failure with message \'Unexpected server response: 405\', got \'Unexpected server response: 404\'');
+      .toEqual('Expected connection failure with message "Unexpected server response: 405", got "Unexpected server response: 404"');
   });
 });

@@ -38,23 +38,23 @@ const wsMethods = {
   sendJson: (ws, msg) => sendWithError(ws, JSON.stringify(msg)),
   wait: (ws, ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   exec: (ws, fn) => fn(ws),
-  expectMessage: async (ws, conversion, check = null) => {
+  expectMessage: async (ws, conversion, check = undefined) => {
     const received = await Promise.race([
       ws.messages.pop(),
       ws.closed.then(() => {
-        throw new Error(`Expected message '${check}', but connection closed`);
+        throw new Error(`Expected message ${JSON.stringify(check)}, but connection closed`);
       }),
     ]).then(conversion);
-    if (check === null) {
+    if (check === undefined) {
       return;
     }
     if (typeof check === 'function') {
       const result = check(received);
       if (result === false) {
-        throw new Error(`Message expectation failed for ${received}`);
+        throw new Error(`Message expectation failed for ${JSON.stringify(received)}`);
       }
     } else if (!equal(received, check)) {
-      throw new Error(`Expected message '${check}', got '${received}'`);
+      throw new Error(`Expected message ${JSON.stringify(check)}, got ${JSON.stringify(received)}`);
     }
   },
   expectText: (ws, check) => wsMethods.expectMessage(ws, msgText, check),
@@ -66,7 +66,7 @@ const wsMethods = {
       throw new Error(`Expected close code ${expectedCode}, got ${code}`);
     }
     if (expectedMessage !== null && message !== expectedMessage) {
-      throw new Error(`Expected close message '${expectedMessage}', got '${message}'`);
+      throw new Error(`Expected close message "${expectedMessage}", got "${message}"`);
     }
   },
 };
@@ -84,7 +84,7 @@ function checkConnectionError(o, expectedCode) {
   }
   const actual = o.error.message;
   if (actual !== expected) {
-    throw new Error(`Expected connection failure with message '${expected}', got '${actual}'`);
+    throw new Error(`Expected connection failure with message "${expected}", got "${actual}"`);
   }
 }
 

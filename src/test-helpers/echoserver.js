@@ -11,7 +11,11 @@ export default () => {
         ws.close(4321, 'Oops');
         return;
       }
-      ws.send(`echo ${message}`);
+      if (message.startsWith('{')) {
+        ws.send(message);
+      } else {
+        ws.send(`echo ${message}`);
+      }
     });
 
     if (ws.protocol === 'show-foo-header') {

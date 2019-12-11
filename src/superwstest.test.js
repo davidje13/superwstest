@@ -122,7 +122,37 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message)
-      .toEqual('Expected message \'nope\', got \'hello\'');
+      .toEqual('Expected message "nope", got "hello"');
+  });
+
+  it('tests JSON data', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectText()
+      .sendText('{"foo":"bar"}')
+      .expectJson({ foo: 'bar' })
+      .sendText('{ "foo" : "bar" }')
+      .expectJson({ foo: 'bar' })
+      .sendText('{ "foo": "bar", "zig": "zag" }')
+      .expectJson({ foo: 'bar', zig: 'zag' });
+  });
+
+  it('fails if JSON data does not match', async () => {
+    let capturedError = null;
+
+    try {
+      await request(server)
+        .ws('/path/ws')
+        .expectText()
+        .sendText('{"foo":"bar"}')
+        .expectJson({ foo: 'nope' });
+    } catch (e) {
+      capturedError = e;
+    }
+
+    expect(capturedError).not.toEqual(null);
+    expect(capturedError.message).toContain('Expected message {"foo":"nope"}');
+    expect(capturedError.message).toContain('got {"foo":"bar"}');
   });
 
   it('produces errors if the connection closes while reading', async () => {
@@ -140,7 +170,7 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message)
-      .toEqual('Expected message \'nope\', but connection closed');
+      .toEqual('Expected message "nope", but connection closed');
   });
 
   it('produces errors if the connection closes with an unexpected code', async () => {
@@ -176,7 +206,7 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message)
-      .toEqual('Expected close message \'Nope\', got \'Oops\'');
+      .toEqual('Expected close message "Nope", got "Oops"');
   });
 
   it('produces errors if the connection closes while sending', async () => {
@@ -232,7 +262,7 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message)
-      .toEqual('Expected message \'nope\', but connection closed');
+      .toEqual('Expected message "nope", but connection closed');
   });
 
   it('produces errors if sending after the connection has closed', async () => {
