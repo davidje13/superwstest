@@ -3,10 +3,14 @@ declare module 'superwstest' {
   import WebSocket from 'ws';
   import { SuperTest, Test } from 'supertest';
 
+  type JsonObject = { [member: string]: JsonValue };
+  interface JsonArray extends Array<JsonValue> {}
+  type JsonValue = JsonObject | JsonArray | string | number | boolean | null;
+
   interface WSChain extends Promise<WebSocket> {
     send(message: any): this;
     sendText(message: any): this;
-    sendJson(message: string | object | number | null): this;
+    sendJson(message: JsonValue): this;
 
     wait(milliseconds: number): this;
     exec(fn: (ws: WebSocket) => (Promise<void> | void)): this;
@@ -24,7 +28,7 @@ declare module 'superwstest' {
     expectText(expected?: string): this;
     expectText(test: (message: string) => boolean): this;
 
-    expectJson(expected?: any): this;
+    expectJson(expected?: JsonValue): this;
     expectJson(test: (message: any) => boolean): this;
 
     close(code?: number, message?: string): this;
