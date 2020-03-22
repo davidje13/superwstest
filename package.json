@@ -34,21 +34,21 @@
   },
   "homepage": "https://github.com/davidje13/superwstest#readme",
   "dependencies": {
-    "@types/supertest": "^2.0.8",
-    "@types/ws": "^6.0.3",
-    "blocking-queue": "0.0.1",
-    "fast-deep-equal": "^2.0.1",
-    "supertest": "^4.0.2",
-    "ws": "^7.1.2"
+    "@types/supertest": "2.x",
+    "@types/ws": "7.x",
+    "blocking-queue": "0.x",
+    "fast-deep-equal": "3.x",
+    "supertest": "4.x",
+    "ws": "7.x"
   },
   "devDependencies": {
-    "@neutrinojs/airbnb-base": "^9.0.0-rc.4",
-    "@neutrinojs/jest": "^9.0.0-rc.4",
-    "@neutrinojs/library": "^9.0.0-rc.4",
-    "eslint": "^6.5.1",
-    "jest": "^24.9.0",
-    "neutrino": "^9.0.0-rc.4",
-    "webpack": "^4.41.0",
-    "webpack-cli": "^3.3.9"
+    "@neutrinojs/airbnb-base": "9.x",
+    "@neutrinojs/jest": "9.x",
+    "@neutrinojs/library": "9.x",
+    "eslint": "6.x",
+    "jest": "25.x",
+    "neutrino": "9.x",
+    "webpack": "4.x",
+    "webpack-cli": "3.x"
   }
 }
