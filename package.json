@@ -11,7 +11,8 @@
   "scripts": {
     "build": "webpack --mode production",
     "lint": "eslint --format codeframe --ext mjs,jsx,js src",
-    "test": "jest && npm run lint",
+    "test": "jest",
+    "posttest": "npm run lint",
     "test:watch": "jest --watch"
   },
   "repository": {
@@ -45,8 +46,8 @@
     "@neutrinojs/airbnb-base": "9.x",
     "@neutrinojs/jest": "9.x",
     "@neutrinojs/library": "9.x",
-    "eslint": "6.x",
-    "jest": "25.x",
+    "eslint": "7.x",
+    "jest": "26.x",
     "neutrino": "9.x",
     "webpack": "4.x",
     "webpack-cli": "3.x"
