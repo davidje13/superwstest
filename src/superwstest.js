@@ -200,6 +200,12 @@ function registerShutdown(server, shutdownDelay) {
 }
 
 export default (server, { shutdownDelay = 0 } = {}) => {
+  if (typeof server === 'string') {
+    const obj = request(server);
+    obj.ws = (path, ...args) => wsRequest(server + path, ...args);
+    return obj;
+  }
+
   if (!server.address()) {
     // see https://github.com/visionmedia/supertest/issues/566
     throw new Error(
