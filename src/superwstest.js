@@ -27,6 +27,7 @@ function sendWithError(ws, message) {
   // https://github.com/websockets/ws/pull/1532
   ws.send(message, (err) => {
     if (err) {
+      ws.close();
       throw err;
     }
   });
@@ -51,9 +52,11 @@ const wsMethods = {
     if (typeof check === 'function') {
       const result = check(received);
       if (result === false) {
+        ws.close();
         throw new Error(`Message expectation failed for ${JSON.stringify(received)}`);
       }
     } else if (!equal(received, check)) {
+      ws.close();
       throw new Error(`Expected message ${JSON.stringify(check)}, got ${JSON.stringify(received)}`);
     }
   },
