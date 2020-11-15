@@ -37,7 +37,7 @@ const wsMethods = {
   sendText: (ws, msg) => sendWithError(ws, String(msg)),
   sendJson: (ws, msg) => sendWithError(ws, JSON.stringify(msg)),
   wait: (ws, ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-  exec: (ws, fn) => fn(ws),
+  exec: async (ws, fn) => fn(ws),
   expectMessage: async (ws, conversion, check = undefined) => {
     const received = await Promise.race([
       ws.messages.pop(),
@@ -71,10 +71,12 @@ const wsMethods = {
   },
 };
 
-function checkConnectionError(o, expectedCode) {
-  if (!o || !o.error) {
-    throw new Error('Expected connection failure, but succeeded');
-  }
+function reportConnectionShouldFail(ws) {
+  ws.close();
+  throw new Error('Expected connection failure, but succeeded');
+}
+
+function checkConnectionError(error, expectedCode) {
   if (!expectedCode) {
     return;
   }
@@ -82,10 +84,19 @@ function checkConnectionError(o, expectedCode) {
   if (typeof expectedCode === 'number') {
     expected = `Unexpected server response: ${expectedCode}`;
   }
-  const actual = o.error.message;
+  const actual = error.message;
   if (actual !== expected) {
     throw new Error(`Expected connection failure with message "${expected}", got "${actual}"`);
   }
+}
+
+function closeAndRethrow(ws) {
+  return (e) => {
+    if (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN) {
+      ws.close();
+    }
+    throw e;
+  };
 }
 
 function wsRequest(url, protocols, options) {
@@ -124,7 +135,7 @@ function wsRequest(url, protocols, options) {
     chain = chain.then((ws) => Promise.race([
       fn(ws, ...args),
       ws.firstError,
-    ]).then(() => ws));
+    ]).catch(closeAndRethrow(ws)).then(() => ws));
 
     delete chain.expectConnectionError;
     return wrapPromise(chain);
@@ -135,9 +146,10 @@ function wsRequest(url, protocols, options) {
   });
 
   chain.expectConnectionError = (expectedCode = null) => {
-    chain = chain
-      .catch((error) => ({ error }))
-      .then((o) => checkConnectionError(o, expectedCode));
+    chain = chain.then(
+      reportConnectionShouldFail,
+      (error) => checkConnectionError(error, expectedCode),
+    );
 
     delete chain.expectConnectionError;
     return chain;
