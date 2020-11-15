@@ -228,7 +228,7 @@ function registerShutdown(server, shutdownDelay) {
 
 const request = (server, { shutdownDelay = 0 } = {}) => {
   if (typeof server === 'string') {
-    const obj = request(server);
+    const obj = stRequest(server);
     obj.ws = (path, ...args) => wsRequest(server + path, ...args);
     return obj;
   }
