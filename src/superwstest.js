@@ -1,4 +1,4 @@
-import request, { Test } from 'supertest';
+import stRequest, { Test } from 'supertest';
 import BlockingQueue from 'blocking-queue';
 import equal from 'fast-deep-equal';
 import WebSocket from 'ws';
@@ -90,18 +90,30 @@ function checkConnectionError(error, expectedCode) {
   }
 }
 
+function isOpen(ws) {
+  return (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN);
+}
+
 function closeAndRethrow(ws) {
   return (e) => {
-    if (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN) {
+    if (isOpen(ws)) {
       ws.close();
     }
     throw e;
   };
 }
 
+const clientSockets = new Set();
+
 function wsRequest(url, protocols, options) {
   let chain = new Promise((resolve, reject) => {
     const ws = new WebSocket(url, protocols, options);
+    clientSockets.add(ws);
+    const originalClose = ws.close.bind(ws);
+    ws.close = (...args) => {
+      originalClose(...args);
+      clientSockets.delete(ws);
+    };
 
     // ws.on('open', () => console.log('OPEN'));
     // ws.on('error', (e) => console.log('ERROR', e));
@@ -118,7 +130,10 @@ function wsRequest(url, protocols, options) {
 
     ws.on('message', (msg) => ws.messages.push(msg));
     ws.on('error', reject);
-    ws.on('close', (code, message) => closed.push({ code, message }));
+    ws.on('close', (code, message) => {
+      clientSockets.delete(ws);
+      closed.push({ code, message });
+    });
     ws.on('open', () => {
       ws.removeListener('error', reject);
       ws.on('error', (err) => errors.push(err));
@@ -191,10 +206,10 @@ function registerShutdown(server, shutdownDelay) {
   testConfig = { shutdownDelay };
   serverTestConfigs.set(server, testConfig);
 
-  const sockets = new Set();
+  const serverSockets = new Set();
   server.on('connection', (s) => {
-    sockets.add(s);
-    s.on('close', () => sockets.delete(s));
+    serverSockets.add(s);
+    s.on('close', () => serverSockets.delete(s));
   });
 
   const originalClose = server.close.bind(server);
@@ -202,7 +217,7 @@ function registerShutdown(server, shutdownDelay) {
   /* eslint-disable-next-line no-param-reassign */ // ensure clean shutdown
   server.close = (callback) => {
     if (server.address()) {
-      performShutdown(sockets, testConfig.shutdownDelay);
+      performShutdown(serverSockets, testConfig.shutdownDelay);
       testConfig.shutdownDelay = 0;
       originalClose(callback);
     } else if (callback) {
@@ -211,7 +226,7 @@ function registerShutdown(server, shutdownDelay) {
   };
 }
 
-export default (server, { shutdownDelay = 0 } = {}) => {
+const request = (server, { shutdownDelay = 0 } = {}) => {
   if (!server.address()) {
     // see https://github.com/visionmedia/supertest/issues/566
     throw new Error(
@@ -221,8 +236,17 @@ export default (server, { shutdownDelay = 0 } = {}) => {
 
   registerShutdown(server, shutdownDelay);
 
-  const obj = request(server);
+  const obj = stRequest(server);
   obj.ws = (path, ...args) => wsRequest(getServerWsPath(server, path), ...args);
 
   return obj;
 };
+
+request.closeAll = () => {
+  const remaining = [...clientSockets].filter(isOpen);
+  clientSockets.clear();
+  remaining.forEach((ws) => ws.close());
+  return remaining.length;
+};
+
+export default request;

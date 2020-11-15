@@ -15,7 +15,11 @@ describe('superwstest', () => {
   });
 
   afterEach((done) => {
+    const danglingConnections = request.closeAll();
     server.close(done);
+    if (danglingConnections > 0) {
+      throw new Error(`Found ${danglingConnections} dangling connection(s) after test`);
+    }
   });
 
   it('communicates via websockets', async () => {
@@ -38,6 +42,17 @@ describe('superwstest', () => {
     expect(ws.readyState).toEqual(WebSocket.OPEN);
 
     await new Promise(server.close);
+    expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
+  });
+
+  it('closes connections automatically when closeAll is called', async () => {
+    const ws = await request(server)
+      .ws('/path/ws')
+      .expectText('hello');
+
+    expect(ws.readyState).toEqual(WebSocket.OPEN);
+
+    request.closeAll();
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
@@ -77,7 +92,8 @@ describe('superwstest', () => {
   it('propagates protocol and options', async () => {
     await request(server)
       .ws('/path/ws', ['show-foo-header'], { headers: { Foo: 'bar' } })
-      .expectText('show-foo-header protocol: bar');
+      .expectText('show-foo-header protocol: bar')
+      .close();
   });
 
   it('catches close events', async () => {
@@ -173,7 +189,8 @@ describe('superwstest', () => {
       .sendText('{ "foo" : "bar" }')
       .expectJson({ foo: 'bar' })
       .sendText('{ "foo": "bar", "zig": "zag" }')
-      .expectJson({ foo: 'bar', zig: 'zag' });
+      .expectJson({ foo: 'bar', zig: 'zag' })
+      .close();
   });
 
   it('fails if JSON data does not match', async () => {
@@ -314,7 +331,8 @@ describe('superwstest', () => {
       .ws('/path/ws')
       .expectText('hello')
       .exec((ws) => ws.send('foo'))
-      .expectText('echo foo');
+      .expectText('echo foo')
+      .close();
   });
 
   it('waits for promises returned by exec', async () => {
@@ -324,7 +342,8 @@ describe('superwstest', () => {
       .exec(async () => {
         await delay(50);
         delayComplete = true;
-      });
+      })
+      .close();
 
     expect(delayComplete).toEqual(true);
   });

@@ -48,8 +48,14 @@ declare module 'superwstest' {
     shutdownDelay?: number;
   }
 
-  export default function request(
+  function request(
     app: Server,
     options?: RequestOptions,
   ): SuperWSTest;
+
+  namespace request {
+    function closeAll(): void;
+  }
+
+  export = request;
 }
