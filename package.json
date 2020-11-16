@@ -35,11 +35,11 @@
   },
   "homepage": "https://github.com/davidje13/superwstest#readme",
   "dependencies": {
-    "@types/supertest": "2.x",
+    "@types/supertest": "<7",
     "@types/ws": "7.x",
     "blocking-queue": "0.x",
     "fast-deep-equal": "3.x",
-    "supertest": "4.x",
+    "supertest": "4.x || 5.x || 6.x",
     "ws": "7.x"
   },
   "devDependencies": {
