@@ -67,6 +67,37 @@ As long as you add `server.close` in an `afterEach`, all connections
 will be closed automatically, so you do not need to close connections
 in every test.
 
+### Testing a remote webserver
+
+You can also test against a remote webserver by specifying the URL
+of the server:
+
+```javascript
+import request from 'superwstest';
+
+describe('MyRemoteThing', () => {
+  afterEach(() => {
+    request.closeAll(); // recommended when using remote servers
+  });
+
+  it('communicates via websockets', async () => {
+    await request('https://example.com')
+      .ws('/path/ws')
+      .expectText('hello')
+      .close();
+  });
+});
+```
+
+Note that adding `request.closeAll()` to an `afterEach` will
+ensure connections are closed in all situations (including test
+timeouts, etc.). This is not needed when testing against a local
+server because the server will close connections when closed.
+
+The server URL given should be http(s) rather than ws(s); this will
+provide compatibility with native supertest requests such as `post`,
+`get`, etc. and will be converted automatically as needed.
+
 ## Methods
 
 The main entrypoint is `request(myServer).ws(path)`. This returns a

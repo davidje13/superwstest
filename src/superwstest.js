@@ -6,10 +6,16 @@ import WebSocket from 'ws';
 const REGEXP_HTTP = /^http/;
 
 function getServerWsPath(server, path) {
-  if (!server.address()) {
-    throw new Error('Server was closed');
+  let httpPath;
+  if (typeof server === 'string') {
+    httpPath = server + path;
+  } else {
+    if (!server.address()) {
+      throw new Error('Server was closed');
+    }
+    httpPath = Test.prototype.serverAddress(server, path);
   }
-  return Test.prototype.serverAddress(server, path).replace(REGEXP_HTTP, 'ws');
+  return httpPath.replace(REGEXP_HTTP, 'ws');
 }
 
 function msgText(data) {
@@ -227,20 +233,16 @@ function registerShutdown(server, shutdownDelay) {
 }
 
 const request = (server, { shutdownDelay = 0 } = {}) => {
-  if (typeof server === 'string') {
-    const obj = stRequest(server);
-    obj.ws = (path, ...args) => wsRequest(server + path, ...args);
-    return obj;
-  }
+  if (typeof server !== 'string') {
+    if (!server.address()) {
+      // see https://github.com/visionmedia/supertest/issues/566
+      throw new Error(
+        'Server must be listening: beforeEach((done) => server.listen(0, done));',
+      );
+    }
 
-  if (!server.address()) {
-    // see https://github.com/visionmedia/supertest/issues/566
-    throw new Error(
-      'Server must be listening: beforeEach((done) => server.listen(0, done));',
-    );
+    registerShutdown(server, shutdownDelay);
   }
-
-  registerShutdown(server, shutdownDelay);
 
   const obj = stRequest(server);
   obj.ws = (path, ...args) => wsRequest(getServerWsPath(server, path), ...args);
