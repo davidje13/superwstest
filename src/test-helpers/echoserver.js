@@ -7,6 +7,13 @@ export default () => {
 
   wss.on('connection', (ws, req) => {
     ws.on('message', (message) => {
+      if (typeof message !== 'string') {
+        ws.send(Buffer.concat([
+          new Uint8Array([111]),
+          new Uint8Array(message),
+        ]));
+        return;
+      }
       if (message === 'trigger-server-close') {
         ws.close(4321, 'Oops');
         return;

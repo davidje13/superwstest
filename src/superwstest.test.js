@@ -193,6 +193,48 @@ describe('superwstest', () => {
       .close();
   });
 
+  it('tests against functions', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectText((actual) => actual.includes('he'))
+      .close();
+
+    let capturedError = null;
+
+    try {
+      await request(server)
+        .ws('/path/ws')
+        .expectText((actual) => actual.includes('no'));
+    } catch (e) {
+      capturedError = e;
+    }
+
+    expect(capturedError).not.toEqual(null);
+    expect(capturedError.message).toContain('Expected message matching function');
+    expect(capturedError.message).toContain('got "hello"');
+  });
+
+  it('tests against regular expressions', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectText(/^hello$/)
+      .close();
+
+    let capturedError = null;
+
+    try {
+      await request(server)
+        .ws('/path/ws')
+        .expectText(/^nope$/);
+    } catch (e) {
+      capturedError = e;
+    }
+
+    expect(capturedError).not.toEqual(null);
+    expect(capturedError.message).toContain('Expected message matching /^nope$/');
+    expect(capturedError.message).toContain('got "hello"');
+  });
+
   it('fails if JSON data does not match', async () => {
     let capturedError = null;
 
@@ -324,6 +366,74 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message).toContain('WebSocket is not open');
+  });
+
+  it('sends arbitrary messages via send', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectText('hello')
+      .send('part1', { fin: false })
+      .send('part2', { fin: true })
+      .expectText('echo part1part2')
+      .close();
+  });
+
+  it('sends and checks binary messages', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectText()
+
+      .sendBinary(new Uint8Array([0, 10, 20]))
+      .expectBinary(new Uint8Array([111, 0, 10, 20]))
+      .close();
+  });
+
+  it('normalises binary data to Uint8Array', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectText()
+      .sendBinary([0, 10, 20])
+      .expectBinary([111, 0, 10, 20])
+
+      .sendBinary([0])
+      .expectBinary((v) => (v instanceof Uint8Array))
+      .close();
+  });
+
+  it('produces errors if a binary expectation is not met', async () => {
+    let capturedError = null;
+
+    try {
+      await request(server)
+        .ws('/path/ws')
+        .expectText()
+        .sendBinary(new Uint8Array([0, 10]))
+        .expectBinary(new Uint8Array([111, 0]));
+    } catch (e) {
+      capturedError = e;
+    }
+
+    expect(capturedError).not.toEqual(null);
+    expect(capturedError.message)
+      .toEqual('Expected message [6f 00], got [6f 00 0a]');
+  });
+
+  it('produces errors if text is received when expecting binary', async () => {
+    let capturedError = null;
+
+    try {
+      await request(server)
+        .ws('/path/ws')
+        .expectText()
+        .sendText('x')
+        .expectBinary();
+    } catch (e) {
+      capturedError = e;
+    }
+
+    expect(capturedError).not.toEqual(null);
+    expect(capturedError.message)
+      .toEqual('Expected binary message, got text');
   });
 
   it('executes arbitrary code via exec', async () => {

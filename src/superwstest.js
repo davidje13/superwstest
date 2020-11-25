@@ -18,6 +18,20 @@ function getServerWsPath(server, path) {
   return httpPath.replace(REGEXP_HTTP, 'ws');
 }
 
+function normaliseBinary(v) {
+  return new Uint8Array(v);
+}
+
+function compareBinary(a, b) {
+  return Buffer.from(a.buffer, a.byteOffset, a.byteLength).equals(b);
+}
+
+function stringifyBinary(v) {
+  const hex = Buffer.from(v.buffer, v.byteOffset, v.byteLength).toString('hex');
+  const spacedHex = hex.replace(/(..)(?!$)/g, '$1 ');
+  return `[${spacedHex}]`;
+}
+
 function msgText(data) {
   if (typeof data !== 'string') {
     throw new Error(`Expected text message, got ${typeof data}`);
@@ -29,26 +43,46 @@ function msgJson(data) {
   return JSON.parse(msgText(data));
 }
 
-function sendWithError(ws, message) {
+function msgBinary(data) {
+  if (typeof data === 'string') {
+    throw new Error('Expected binary message, got text');
+  }
+  return normaliseBinary(data);
+}
+
+function sendWithError(ws, message, options) {
   // https://github.com/websockets/ws/pull/1532
-  ws.send(message, (err) => {
+  ws.send(message, options, (err) => {
     if (err) {
       throw err;
     }
   });
 }
 
+function stringify(v) {
+  if (typeof v === 'function') {
+    return v.expectedMessage || 'matching function';
+  }
+  if (v instanceof Uint8Array) {
+    return stringifyBinary(v);
+  }
+  return JSON.stringify(v);
+}
+
 const wsMethods = {
-  send: (ws, msg) => sendWithError(ws, msg),
+  send: (ws, msg, options) => sendWithError(ws, msg, options),
   sendText: (ws, msg) => sendWithError(ws, String(msg)),
   sendJson: (ws, msg) => sendWithError(ws, JSON.stringify(msg)),
+  sendBinary: (ws, msg) => sendWithError(ws, normaliseBinary(msg), {
+    binary: true,
+  }),
   wait: (ws, ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   exec: async (ws, fn) => fn(ws),
   expectMessage: async (ws, conversion, check = undefined) => {
     const received = await Promise.race([
       ws.messages.pop(),
       ws.closed.then(() => {
-        throw new Error(`Expected message ${JSON.stringify(check)}, but connection closed`);
+        throw new Error(`Expected message ${stringify(check)}, but connection closed`);
       }),
     ]).then(conversion);
     if (check === undefined) {
@@ -57,14 +91,34 @@ const wsMethods = {
     if (typeof check === 'function') {
       const result = check(received);
       if (result === false) {
-        throw new Error(`Message expectation failed for ${JSON.stringify(received)}`);
+        throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
       }
     } else if (!equal(received, check)) {
-      throw new Error(`Expected message ${JSON.stringify(check)}, got ${JSON.stringify(received)}`);
+      throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
     }
   },
-  expectText: (ws, check) => wsMethods.expectMessage(ws, msgText, check),
+  expectText: (ws, expected) => {
+    let check;
+    if (expected instanceof RegExp) {
+      check = (value) => expected.test(value);
+      check.expectedMessage = `matching ${expected}`;
+    } else {
+      check = expected;
+    }
+    return wsMethods.expectMessage(ws, msgText, check);
+  },
   expectJson: (ws, check) => wsMethods.expectMessage(ws, msgJson, check),
+  expectBinary: (ws, expected) => {
+    let check;
+    if (typeof expected === 'function') {
+      check = expected;
+    } else if (expected) {
+      const norm = normaliseBinary(expected);
+      check = (value) => compareBinary(value, norm);
+      check.expectedMessage = stringify(norm);
+    }
+    return wsMethods.expectMessage(ws, msgBinary, check);
+  },
   close: (ws, code, message) => ws.close(code, message),
   expectClosed: async (ws, expectedCode = null, expectedMessage = null) => {
     const { code, message } = await ws.closed;
