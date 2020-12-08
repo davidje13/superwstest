@@ -287,8 +287,8 @@ the check passes, or if false, the check fails. Useful for making
 arbitrary assertions about parts of the Upgrade response, such as headers.
 
 ```javascript
-request(server).ws('...)
-  .expect((req) => req.headers['set-cookie'] === 'foo=bar');
+request(server).ws('...')
+  .expectUpgrade((req) => (req.headers['set-cookie'] === 'foo=bar'));
 ```
 
 ### `.wait(milliseconds)`
