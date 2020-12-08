@@ -109,6 +109,7 @@ provide compatibility with native supertest requests such as `post`,
   - [.close([code[, reason]]](#closecode-reason)
   - [.expectClosed([expectedCode[, expectedReason]])](#expectclosedexpectedcode-expectedreason)
   - [.expectConnectionError([expectedStatusCode])](#expectconnectionerrorexpectedstatuscode)
+  - [.expectUpgrade(fn)](#expectupgradefn)
   - [.wait(milliseconds)](#waitmilliseconds)
   - [.exec(fn)](#execfn)
 
@@ -277,6 +278,17 @@ request(server).ws('...')
 
 request(server).ws('...')
   .expectConnectionError(404); // specific error
+```
+
+### `.expectUpgrade(fn)`
+
+Run a check against the Upgrade response. If the predicate returns true
+the check passes, or if false, the check fails. Useful for making
+arbitrary assertions about parts of the Upgrade response, such as headers.
+
+```javascript
+request(server).ws('...)
+  .expect((req) => req.headers['set-cookie'] === 'foo=bar');
 ```
 
 ### `.wait(milliseconds)`

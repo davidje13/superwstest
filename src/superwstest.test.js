@@ -458,6 +458,13 @@ describe('superwstest', () => {
     expect(delayComplete).toEqual(true);
   });
 
+  it('checks the upgrade response', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectUpgrade((req) => req.statusCode === 101)
+      .close();
+  });
+
   it('closes if exec throws', async () => {
     let ws;
     try {
@@ -503,5 +510,20 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message).toContain('WebSocket is not open');
+  });
+
+  it('produces errors if the upgrade check fails', async () => {
+    let capturedError = null;
+
+    try {
+      await request(server)
+        .ws('/path/ws')
+        .expectUpgrade((req) => req.statusCode === 200);
+    } catch (e) {
+      capturedError = e;
+    }
+
+    expect(capturedError).not.toEqual(null);
+    expect(capturedError.message).toContain('Upgrade assertion returned false');
   });
 });

@@ -129,6 +129,12 @@ const wsMethods = {
       throw new Error(`Expected close message "${expectedMessage}", got "${message}"`);
     }
   },
+  expectUpgrade: async (ws, check) => {
+    const request = await ws.upgrade;
+    if (!check(request)) {
+      throw new Error('Upgrade assertion returned false');
+    }
+  },
 };
 
 function reportConnectionShouldFail(ws) {
@@ -183,10 +189,12 @@ function wsRequest(url, protocols, options) {
     ws.messages = new BlockingQueue();
     const errors = new BlockingQueue();
     const closed = new BlockingQueue();
+    const upgrade = new BlockingQueue();
     ws.closed = closed.pop();
     ws.firstError = errors.pop().then((e) => {
       throw e;
     });
+    ws.upgrade = upgrade.pop();
 
     ws.on('message', (msg) => ws.messages.push(msg));
     ws.on('error', reject);
@@ -198,6 +206,9 @@ function wsRequest(url, protocols, options) {
       ws.removeListener('error', reject);
       ws.on('error', (err) => errors.push(err));
       resolve(ws);
+    });
+    ws.on('upgrade', (request) => {
+      upgrade.push(request);
     });
   });
 

@@ -1,5 +1,5 @@
 declare module 'superwstest' {
-  import { Server, ClientRequestArgs } from 'http';
+  import { Server, ClientRequestArgs, IncomingMessage } from 'http';
   import WebSocket from 'ws';
   import { SuperTest, Test } from 'supertest';
 
@@ -35,6 +35,8 @@ declare module 'superwstest' {
       expectedCode?: number | null,
       expectedReason?: string | null,
     ): this;
+
+    expectUpgrade(test: (request: IncomingMessage) => boolean): this;
 
     expectConnectionError(expectedCode?: number | null): Promise<WebSocket>;
   }
