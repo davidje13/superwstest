@@ -286,9 +286,12 @@ Run a check against the Upgrade response. If the predicate returns true
 the check passes, or if false, the check fails. Useful for making
 arbitrary assertions about parts of the Upgrade response, such as headers.
 
+The parameter will be a
+[`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage).
+
 ```javascript
 request(server).ws('...')
-  .expectUpgrade((req) => (req.headers['set-cookie'] === 'foo=bar'));
+  .expectUpgrade((res) => (res.headers['set-cookie'] === 'foo=bar'));
 ```
 
 ### `.wait(milliseconds)`

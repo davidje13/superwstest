@@ -36,7 +36,7 @@ declare module 'superwstest' {
       expectedReason?: string | null,
     ): this;
 
-    expectUpgrade(test: (request: IncomingMessage) => boolean): this;
+    expectUpgrade(test: (upgradeResponse: IncomingMessage) => boolean): this;
 
     expectConnectionError(expectedCode?: number | null): Promise<WebSocket>;
   }
