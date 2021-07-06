@@ -109,7 +109,7 @@ provide compatibility with native supertest requests such as `post`,
   - [.close([code[, reason]]](#closecode-reason)
   - [.expectClosed([expectedCode[, expectedReason]])](#expectclosedexpectedcode-expectedreason)
   - [.expectConnectionError([expectedStatusCode])](#expectconnectionerrorexpectedstatuscode)
-  - [.expectUpgrade(fn)](#expectupgradefn)
+  - [.expectUpgrade(test)](#expectupgradetest)
   - [.wait(milliseconds)](#waitmilliseconds)
   - [.exec(fn)](#execfn)
 
@@ -160,6 +160,18 @@ request(server).ws('...')
   .expectText()          // just check message is text
 ```
 
+When using a function, the check will be considered a failure if it
+returns `false`. Any other value (including `undefined` and `null`)
+is considered a pass. This means you can use (e.g.) Jest expectations
+(returning no value):
+
+```javascript
+request(server).ws('...')
+  .expectText((actual) => {
+    expect(actual).toContain('foo');
+  })
+```
+
 ### `.expectJson([expected])`
 
 Waits for the next message to arrive, deserialises it using `JSON.parse`,
@@ -171,6 +183,18 @@ request(server).ws('...')
   .expectJson({ foo: 'bar', zig: ['zag'] })       // exact match
   .expectJson((actual) => (actual.foo === 'bar')) // function
   .expectJson() // just check message is valid JSON
+```
+
+When using a function, the check will be considered a failure if it
+returns `false`. Any other value (including `undefined` and `null`)
+is considered a pass. This means you can use (e.g.) Jest expectations
+(returning no value):
+
+```javascript
+request(server).ws('...')
+  .expectText((actual) => {
+    expect(actual.bar).toBeGreaterThan(2);
+  })
 ```
 
 ### `.expectBinary([expected])`
@@ -187,6 +211,18 @@ request(server).ws('...')
   .expectBinary(new Uint8Array([10, 20, 30]))
   .expectBinary((actual) => (actual[0] === 10)) // function
   .expectBinary() // just check message is binary
+```
+
+When using a function, the check will be considered a failure if it
+returns `false`. Any other value (including `undefined` and `null`)
+is considered a pass. This means you can use (e.g.) Jest expectations
+(returning no value):
+
+```javascript
+request(server).ws('...')
+  .expectBinary((actual) => {
+    expect(actual[0]).toBeGreaterThan(2);
+  })
 ```
 
 ### `.sendText(text)`
@@ -280,11 +316,14 @@ request(server).ws('...')
   .expectConnectionError(404); // specific error
 ```
 
-### `.expectUpgrade(fn)`
+### `.expectUpgrade(test)`
 
-Run a check against the Upgrade response. If the predicate returns true
-the check passes, or if false, the check fails. Useful for making
-arbitrary assertions about parts of the Upgrade response, such as headers.
+Run a check against the Upgrade response. Useful for making arbitrary
+assertions about parts of the Upgrade response, such as headers.
+
+The check will be considered a failure if it returns `false`. Any other
+value (including `undefined` and `null`) is considered a pass.
+This means you can use (e.g.) Jest expectations (returning no value).
 
 The parameter will be a
 [`http.IncomingMessage`](https://nodejs.org/api/http.html#http_class_http_incomingmessage).
@@ -292,6 +331,11 @@ The parameter will be a
 ```javascript
 request(server).ws('...')
   .expectUpgrade((res) => (res.headers['set-cookie'] === 'foo=bar'));
+
+request(server).ws('...')
+  .expectUpgrade((res) => {
+    expect(res.headers).toHaveProperty('set-cookie', 'foo=bar');
+  })
 ```
 
 ### `.wait(milliseconds)`

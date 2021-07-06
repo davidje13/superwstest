@@ -524,7 +524,15 @@ describe('superwstest', () => {
     }
 
     expect(capturedError).not.toEqual(null);
-    expect(capturedError.message).toContain('Upgrade assertion returned false');
+    expect(capturedError.message).toContain('Expected Upgrade matching assertion');
+    expect(capturedError.message).toContain('status 101');
+  });
+
+  it('allows expectUpgrade to return undefined', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectUpgrade((req) => expect(req.statusCode).toEqual(101))
+      .close();
   });
 
   it('allows multiple calls to expectUpgrade', async () => {

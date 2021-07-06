@@ -131,8 +131,9 @@ const wsMethods = {
   },
   expectUpgrade: async (ws, check) => {
     const request = await ws.upgrade;
-    if (!check(request)) {
-      throw new Error('Upgrade assertion returned false');
+    const result = check(request);
+    if (result === false) {
+      throw new Error(`Expected Upgrade matching assertion, got: status ${request.statusCode} headers ${JSON.stringify(request.headers)}`);
     }
   },
 };
