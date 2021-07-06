@@ -311,7 +311,7 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message)
-      .toEqual('Expected message "nope", but connection closed');
+      .toEqual('Expected message "nope", but connection closed: 4321 "Oops"');
   });
 
   it('produces errors if the connection closes with an unexpected code', async () => {
@@ -329,7 +329,7 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message)
-      .toEqual('Expected close code 4444, got 4321');
+      .toEqual('Expected close code 4444, got 4321 "Oops"');
   });
 
   it('produces errors if the connection closes with an unexpected message', async () => {
@@ -347,7 +347,7 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message)
-      .toEqual('Expected close message "Nope", got "Oops"');
+      .toEqual('Expected close message "Nope", got 4321 "Oops"');
   });
 
   it('produces errors if the connection closes while sending', async () => {
@@ -365,7 +365,7 @@ describe('superwstest', () => {
     }
 
     expect(capturedError).not.toEqual(null);
-    expect(capturedError.message).toContain('WebSocket is not open');
+    expect(capturedError.message).toEqual('Cannot send message; connection closed with 4321 "Oops"');
   });
 
   it('sends arbitrary messages via send', async () => {
@@ -492,7 +492,7 @@ describe('superwstest', () => {
 
     expect(capturedError).not.toEqual(null);
     expect(capturedError.message)
-      .toEqual('Expected message "nope", but connection closed');
+      .toEqual('Expected message "nope", but connection closed: 1005 ""');
   });
 
   it('produces errors if sending after the connection has closed', async () => {
@@ -509,7 +509,7 @@ describe('superwstest', () => {
     }
 
     expect(capturedError).not.toEqual(null);
-    expect(capturedError.message).toContain('WebSocket is not open');
+    expect(capturedError.message).toContain('Cannot send message; connection closed with 1005 ""');
   });
 
   it('produces errors if the upgrade check fails', async () => {

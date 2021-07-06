@@ -50,11 +50,20 @@ function msgBinary(data) {
   return normaliseBinary(data);
 }
 
-function sendWithError(ws, message, options) {
+function sendWithError(ws, msg, options) {
   // https://github.com/websockets/ws/pull/1532
-  ws.send(message, options, (err) => {
-    if (err) {
-      throw err;
+  return new Promise((resolve, reject) => {
+    ws.send(msg, options, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  }).catch(async (err) => {
+    if (err.message && err.message.includes('WebSocket is not open')) {
+      const { code, message } = await ws.closed;
+      throw new Error(`Cannot send message; connection closed with ${code} "${message}"`);
     }
   });
 }
@@ -81,8 +90,8 @@ const wsMethods = {
   expectMessage: async (ws, conversion, check = undefined) => {
     const received = await Promise.race([
       ws.messages.pop(),
-      ws.closed.then(() => {
-        throw new Error(`Expected message ${stringify(check)}, but connection closed`);
+      ws.closed.then(({ code, message }) => {
+        throw new Error(`Expected message ${stringify(check)}, but connection closed: ${code} "${message}"`);
       }),
     ]).then(conversion);
     if (check === undefined) {
@@ -123,10 +132,10 @@ const wsMethods = {
   expectClosed: async (ws, expectedCode = null, expectedMessage = null) => {
     const { code, message } = await ws.closed;
     if (expectedCode !== null && code !== expectedCode) {
-      throw new Error(`Expected close code ${expectedCode}, got ${code}`);
+      throw new Error(`Expected close code ${expectedCode}, got ${code} "${message}"`);
     }
     if (expectedMessage !== null && message !== expectedMessage) {
-      throw new Error(`Expected close message "${expectedMessage}", got "${message}"`);
+      throw new Error(`Expected close message "${expectedMessage}", got ${code} "${message}"`);
     }
   },
   expectUpgrade: async (ws, check) => {
