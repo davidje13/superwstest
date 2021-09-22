@@ -192,7 +192,7 @@ is considered a pass. This means you can use (e.g.) Jest expectations
 
 ```javascript
 request(server).ws('...')
-  .expectText((actual) => {
+  .expectJson((actual) => {
     expect(actual.bar).toBeGreaterThan(2);
   })
 ```

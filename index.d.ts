@@ -6,6 +6,10 @@ declare module 'superwstest' {
   type JsonObject = { [member: string]: JsonValue };
   interface JsonArray extends Array<JsonValue> {}
   type JsonValue = JsonObject | JsonArray | string | number | boolean | null;
+  interface ReceivedMessage {
+    data: Buffer;
+    isBinary: boolean;
+  }
 
   interface WSChain extends Promise<WebSocket> {
     send(message: any, options?: { mask?: boolean; binary?: boolean; compress?: boolean; fin?: boolean }): this;
@@ -17,12 +21,12 @@ declare module 'superwstest' {
     exec(fn: (ws: WebSocket) => (Promise<void> | void)): this;
 
     expectMessage<T>(
-      conversion: (received: string) => T,
+      conversion: (received: ReceivedMessage) => T,
       expected?: T | null,
     ): this;
 
     expectMessage<T>(
-      conversion: (received: string) => T,
+      conversion: (received: ReceivedMessage) => T,
       test: (message: T) => (boolean | undefined),
     ): this;
 

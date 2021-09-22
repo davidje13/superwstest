@@ -6,14 +6,15 @@ export default () => {
   const wss = new WebSocket.Server({ server });
 
   wss.on('connection', (ws, req) => {
-    ws.on('message', (message) => {
-      if (typeof message !== 'string') {
+    ws.on('message', (data, isBinary) => {
+      if (isBinary || (isBinary === undefined && typeof data !== 'string')) {
         ws.send(Buffer.concat([
           new Uint8Array([111]),
-          new Uint8Array(message),
+          new Uint8Array(data),
         ]));
         return;
       }
+      const message = String(data);
       if (message === 'trigger-server-close') {
         ws.close(4321, 'Oops');
         return;

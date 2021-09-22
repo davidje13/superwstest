@@ -32,19 +32,19 @@ function stringifyBinary(v) {
   return `[${spacedHex}]`;
 }
 
-function msgText(data) {
-  if (typeof data !== 'string') {
-    throw new Error(`Expected text message, got ${typeof data}`);
+function msgText({ data, isBinary }) {
+  if (isBinary) {
+    throw new Error('Expected text message, got binary');
   }
-  return data;
+  return String(data);
 }
 
-function msgJson(data) {
-  return JSON.parse(msgText(data));
+function msgJson(msg) {
+  return JSON.parse(msgText(msg));
 }
 
-function msgBinary(data) {
-  if (typeof data === 'string') {
+function msgBinary({ data, isBinary }) {
+  if (!isBinary) {
     throw new Error('Expected binary message, got text');
   }
   return normaliseBinary(data);
@@ -62,8 +62,8 @@ function sendWithError(ws, msg, options) {
     });
   }).catch(async (err) => {
     if (err.message && err.message.includes('WebSocket is not open')) {
-      const { code, message } = await ws.closed;
-      throw new Error(`Cannot send message; connection closed with ${code} "${message}"`);
+      const { code, data } = await ws.closed;
+      throw new Error(`Cannot send message; connection closed with ${code} "${data}"`);
     }
   });
 }
@@ -90,8 +90,8 @@ const wsMethods = {
   expectMessage: async (ws, conversion, check = undefined) => {
     const received = await Promise.race([
       ws.messages.pop(),
-      ws.closed.then(({ code, message }) => {
-        throw new Error(`Expected message ${stringify(check)}, but connection closed: ${code} "${message}"`);
+      ws.closed.then(({ code, data }) => {
+        throw new Error(`Expected message ${stringify(check)}, but connection closed: ${code} "${data}"`);
       }),
     ]).then(conversion);
     if (check === undefined) {
@@ -130,12 +130,12 @@ const wsMethods = {
   },
   close: (ws, code, message) => ws.close(code, message),
   expectClosed: async (ws, expectedCode = null, expectedMessage = null) => {
-    const { code, message } = await ws.closed;
+    const { code, data } = await ws.closed;
     if (expectedCode !== null && code !== expectedCode) {
-      throw new Error(`Expected close code ${expectedCode}, got ${code} "${message}"`);
+      throw new Error(`Expected close code ${expectedCode}, got ${code} "${data}"`);
     }
-    if (expectedMessage !== null && message !== expectedMessage) {
-      throw new Error(`Expected close message "${expectedMessage}", got ${code} "${message}"`);
+    if (expectedMessage !== null && String(data) !== expectedMessage) {
+      throw new Error(`Expected close message "${expectedMessage}", got ${code} "${data}"`);
     }
   },
   expectUpgrade: async (ws, check) => {
@@ -206,11 +206,19 @@ function wsRequest(url, protocols, options) {
     });
     ws.upgrade = upgrade.pop();
 
-    ws.on('message', (msg) => ws.messages.push(msg));
+    ws.on('message', (data, isBinary) => {
+      if (isBinary !== undefined) { // ws 8.x
+        ws.messages.push({ data, isBinary });
+      } else if (typeof data === 'string') { // ws 7.x
+        ws.messages.push({ data: Buffer.from(data, 'utf8'), isBinary: false });
+      } else {
+        ws.messages.push({ data, isBinary: true });
+      }
+    });
     ws.on('error', reject);
-    ws.on('close', (code, message) => {
+    ws.on('close', (code, data) => {
       clientSockets.delete(ws);
-      closed.push({ code, message });
+      closed.push({ code, data });
     });
     ws.on('open', () => {
       ws.removeListener('error', reject);
