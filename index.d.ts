@@ -1,7 +1,7 @@
 declare module 'superwstest' {
-  import { Server, ClientRequestArgs, IncomingMessage } from 'http';
-  import WebSocket from 'ws';
-  import { SuperTest, Test } from 'supertest';
+  import type { Server, ClientRequestArgs, IncomingMessage } from 'http';
+  import type WebSocket from 'ws';
+  import type { SuperTest, Test } from 'supertest';
 
   export type JsonObject = { [member: string]: JsonValue };
   export interface JsonArray extends Array<JsonValue> {}
