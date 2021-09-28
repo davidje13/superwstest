@@ -3,9 +3,10 @@ declare module 'superwstest' {
   import type WebSocket from 'ws';
   import type { SuperTest, Test } from 'supertest';
 
-  export type JsonObject = { [member: string]: JsonValue };
-  export interface JsonArray extends Array<JsonValue> {}
-  export type JsonValue = JsonObject | JsonArray | string | number | boolean | null;
+  type JsonObject = { [member: string]: JsonValue };
+  interface JsonArray extends Array<JsonValue> {}
+  type JsonValue = JsonObject | JsonArray | string | number | boolean | null;
+
   export interface ReceivedMessage {
     data: Buffer;
     isBinary: boolean;
