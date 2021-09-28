@@ -1,17 +1,18 @@
 declare module 'superwstest' {
-  import { Server, ClientRequestArgs, IncomingMessage } from 'http';
-  import WebSocket from 'ws';
-  import { SuperTest, Test } from 'supertest';
+  import type { Server, ClientRequestArgs, IncomingMessage } from 'http';
+  import type WebSocket from 'ws';
+  import type { SuperTest, Test } from 'supertest';
 
   type JsonObject = { [member: string]: JsonValue };
   interface JsonArray extends Array<JsonValue> {}
   type JsonValue = JsonObject | JsonArray | string | number | boolean | null;
-  interface ReceivedMessage {
+
+  export interface ReceivedMessage {
     data: Buffer;
     isBinary: boolean;
   }
 
-  interface WSChain extends Promise<WebSocket> {
+  export interface WSChain extends Promise<WebSocket> {
     send(message: any, options?: { mask?: boolean; binary?: boolean; compress?: boolean; fin?: boolean }): this;
     sendText(message: any): this;
     sendJson(message: JsonValue): this;
@@ -45,12 +46,12 @@ declare module 'superwstest' {
     expectConnectionError(expectedCode?: number | null): Promise<WebSocket>;
   }
 
-  interface SuperWSTest extends SuperTest<Test> {
+  export interface SuperWSTest extends SuperTest<Test> {
     ws(path: string, options?: WebSocket.ClientOptions | ClientRequestArgs): WSChain;
     ws(path: string, protocols?: string | string[], options?: WebSocket.ClientOptions | ClientRequestArgs): WSChain;
   }
 
-  interface RequestOptions {
+  export interface RequestOptions {
     shutdownDelay?: number;
   }
 
@@ -63,5 +64,5 @@ declare module 'superwstest' {
     function closeAll(): void;
   }
 
-  export = request;
+  export default request;
 }
