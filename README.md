@@ -99,7 +99,7 @@ provide compatibility with native supertest requests such as `post`,
 
 - [request(server[, options])](#requestserver-options)
 - [request(...).ws(path[, protocols][, options])](#requestserverwspath-protocols-options)
-  - [.set(header, value)](#setheadervalue)
+  - [.set(header, value)](#setheader-value)
   - [.unset(header)](#unsetheader)
   - [.expectText([expected])](#expecttextexpected)
   - [.expectJson([expected])](#expectjsonexpected)
