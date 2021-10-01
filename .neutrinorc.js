@@ -31,6 +31,8 @@ module.exports = {
         ],
       },
     }),
+    // https://github.com/webpack/webpack/issues/3929#issuecomment-432194802
+    (neutrino) => neutrino.config.output.libraryExport('default'),
     jest(),
   ],
 };

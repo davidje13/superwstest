@@ -340,4 +340,6 @@ request.closeAll = () => {
   return remaining.length;
 };
 
+// temporary backwards-compatibility for CommonJS require('superwstest').default
+request.default = request;
 export default request;

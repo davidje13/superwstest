@@ -11,7 +11,7 @@
   "scripts": {
     "build": "webpack --mode production",
     "lint": "eslint --format codeframe --ext mjs,jsx,js src",
-    "test": "jest",
+    "test": "webpack --mode production && jest",
     "posttest": "npm run lint",
     "test:watch": "jest --watch"
   },
