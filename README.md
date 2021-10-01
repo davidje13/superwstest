@@ -99,6 +99,8 @@ provide compatibility with native supertest requests such as `post`,
 
 - [request(server[, options])](#requestserver-options)
 - [request(...).ws(path[, protocols][, options])](#requestserverwspath-protocols-options)
+  - [.set(header, value)](#setheadervalue)
+  - [.unset(header)](#unsetheader)
   - [.expectText([expected])](#expecttextexpected)
   - [.expectJson([expected])](#expectjsonexpected)
   - [.expectBinary([expected])](#expectbinaryexpected)
@@ -139,12 +141,40 @@ additional fluent API methods attached (described below).
 Internally, this uses [ws](https://www.npmjs.com/package/ws), and the
 protocols and options given are passed directly to the
 [`WebSocket` constructor](https://github.com/websockets/ws/blob/HEAD/doc/ws.md#new-websocketaddress-protocols-options).
-For example, to set a cookie:
+For example, one way to set a cookie:
 
 ```javascript
 request(myServer)
   .ws('/path/ws', { headers: { cookie: 'foo=bar' } })
 ```
+
+(you can also use `.set('Cookie', 'foo=bar')` to set cookies)
+
+### `.set(header, value)`
+
+Sets the header-value pair on the initial WebSocket connection. This can
+also be called with an object to set multiple headers at once.
+
+```javascript
+request(server).ws('...')
+  .set('Cookie', 'foo=bar')
+  .set({ 'Authorization': 'bearer foo', 'X-Foo': 'bar' })
+```
+
+This function cannot be called after the connection has been established
+(i.e. after calling `send` or `expect*`).
+
+### `.unset(header)`
+
+Removes the header from the initial WebSocket connection.
+
+```javascript
+request(server).ws('...')
+  .unset('Cookie')
+```
+
+This function cannot be called after the connection has been established
+(i.e. after calling `send` or `expect*`).
 
 ### `.expectText([expected])`
 

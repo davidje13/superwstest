@@ -26,8 +26,8 @@ export default () => {
       }
     });
 
-    if (ws.protocol === 'show-foo-header') {
-      ws.send(`show-foo-header protocol: ${req.headers.foo}`);
+    if (ws.protocol === 'show-test-headers') {
+      ws.send(`show-test-headers protocol: ${req.headers.foo}, ${req.headers.bar}, ${req.headers.baz}`);
     } else {
       ws.send('hello');
     }

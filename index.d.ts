@@ -13,6 +13,10 @@ declare module 'superwstest' {
   }
 
   export interface WSChain extends Promise<WebSocket> {
+    set(header: string, value: string): this;
+    set(header: Record<string, string>): this;
+    unset(header: string): this;
+
     send(message: any, options?: { mask?: boolean; binary?: boolean; compress?: boolean; fin?: boolean }): this;
     sendText(message: any): this;
     sendJson(message: JsonValue): this;

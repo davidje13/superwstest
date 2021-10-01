@@ -89,11 +89,82 @@ describe('superwstest', () => {
     await closing; // server closes when all connections are closed
   });
 
-  it('propagates protocol and options', async () => {
-    await request(server)
-      .ws('/path/ws', ['show-foo-header'], { headers: { Foo: 'bar' } })
-      .expectText('show-foo-header protocol: bar')
-      .close();
+  describe('connection options', () => {
+    it('propagates protocol and options', async () => {
+      await request(server)
+        .ws('/path/ws', ['show-test-headers'], {
+          headers: {
+            Foo: 'h1',
+            BAR: 'h2',
+            baz: 'h3',
+          },
+        })
+        .expectText('show-test-headers protocol: h1, h2, h3')
+        .close();
+    });
+
+    it('sets headers', async () => {
+      await request(server)
+        .ws('/path/ws', ['show-test-headers'])
+        .set('foo', 'abc')
+        .set('BAR', 'def')
+        .set('Baz', 'ghi')
+        .expectText('show-test-headers protocol: abc, def, ghi')
+        .close();
+    });
+
+    it('sets multiple headers if given an object', async () => {
+      await request(server)
+        .ws('/path/ws', ['show-test-headers'])
+        .set({ foo: 'abc', BAR: 'def' })
+        .set({ Baz: 'ghi' })
+        .expectText('show-test-headers protocol: abc, def, ghi')
+        .close();
+    });
+
+    it('overrides initial headers case insensitively', async () => {
+      await request(server)
+        .ws('/path/ws', ['show-test-headers'], {
+          headers: {
+            Foo: 'h1',
+            BAR: 'h2',
+            baz: 'h3',
+          },
+        })
+        .set('bar', 'nope')
+        .expectText('show-test-headers protocol: h1, nope, h3')
+        .close();
+    });
+
+    it('unsets headers case insensitively', async () => {
+      await request(server)
+        .ws('/path/ws', ['show-test-headers'], {
+          headers: {
+            Foo: 'h1',
+            BAR: 'h2',
+          },
+        })
+        .set('baz', 'woo')
+        .unset('FOO')
+        .unset('baZ')
+        .expectText('show-test-headers protocol: undefined, h2, undefined')
+        .close();
+    });
+
+    it('cannot be used once the connection is established', async () => {
+      let capturedError = null;
+
+      const chain = request(server).ws('/path/ws').expectText('hello');
+      try {
+        chain.set('a', 'b');
+      } catch (e) {
+        capturedError = e;
+      }
+      expect(capturedError).not.toEqual(null);
+      expect(capturedError.message).toContain('WebSocket has already been established');
+
+      await chain.close();
+    });
   });
 
   it('catches close events', async () => {
@@ -137,6 +208,14 @@ describe('superwstest', () => {
 
     const connections = await promisify(server.getConnections).bind(server)();
     expect(connections).toEqual(0);
+  });
+
+  it('does not allow expectConnectionError to be used after another expectation', async () => {
+    let chain = request(server).ws('/path/ws');
+    expect(typeof chain.expectConnectionError).toEqual('function');
+    chain = chain.expectText('hello');
+    expect(chain.expectConnectionError).toEqual(undefined);
+    await chain.close();
   });
 
   it('produces errors if an expectation is not met', async () => {

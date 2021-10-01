@@ -179,11 +179,23 @@ function closeAndRethrow(ws) {
   };
 }
 
+function findExistingHeader(headers, header) {
+  const lc = header.toLowerCase();
+  return Object.keys(headers).find((h) => (h.toLowerCase() === lc)) || lc;
+}
+
 const clientSockets = new Set();
 
+const PRECONNECT_FN_ERROR = () => {
+  throw new Error('WebSocket has already been established; cannot change configuration');
+};
+
 function wsRequest(url, protocols, options) {
-  let chain = new Promise((resolve, reject) => {
-    const ws = new WebSocket(url, protocols, options);
+  const opts = { ...options, headers: { ...(options || {}).headers } };
+
+  // Initial Promise.resolve() gives us a tick to populate connection info (i.e. set(...))
+  let chain = Promise.resolve().then(() => new Promise((resolve, reject) => {
+    const ws = new WebSocket(url, protocols, opts);
     clientSockets.add(ws);
     const originalClose = ws.close.bind(ws);
     ws.close = (...args) => {
@@ -228,7 +240,32 @@ function wsRequest(url, protocols, options) {
     ws.on('upgrade', (request) => {
       upgrade.push(request);
     });
-  });
+  }));
+
+  const preconnectFns = {
+    set(header, value) {
+      if (typeof header === 'object') {
+        Object.entries(header).forEach(([h, v]) => preconnectFns.set(h, v));
+        return chain;
+      }
+      opts.headers[findExistingHeader(opts.headers, header)] = value;
+      return chain;
+    },
+    unset(header) {
+      delete opts.headers[findExistingHeader(opts.headers, header)];
+      return chain;
+    },
+  };
+  Object.assign(chain, preconnectFns);
+
+  /* eslint-disable no-param-reassign */ // purpose of function
+  function removePreConnectionFunctions(promise) {
+    delete promise.expectConnectionError;
+    Object.keys(preconnectFns).forEach((k) => {
+      promise[k] = PRECONNECT_FN_ERROR;
+    });
+  }
+  /* eslint-enable no-param-reassign */
 
   const methods = {};
   function wrapPromise(promise) {
@@ -241,7 +278,7 @@ function wsRequest(url, protocols, options) {
       ws.firstError,
     ]).catch(closeAndRethrow(ws)).then(() => ws));
 
-    delete chain.expectConnectionError;
+    removePreConnectionFunctions(chain);
     return wrapPromise(chain);
   };
 
@@ -255,7 +292,7 @@ function wsRequest(url, protocols, options) {
       (error) => checkConnectionError(error, expectedCode),
     );
 
-    delete chain.expectConnectionError;
+    removePreConnectionFunctions(chain);
     return chain;
   };
 
