@@ -28,6 +28,8 @@ export default () => {
 
     if (ws.protocol === 'show-test-headers') {
       ws.send(`show-test-headers protocol: ${req.headers.foo}, ${req.headers.bar}, ${req.headers.baz}`);
+    } else if (req.headers['x-special-header']) {
+      ws.send('special!');
     } else {
       ws.send('hello');
     }

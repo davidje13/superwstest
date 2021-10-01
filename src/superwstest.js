@@ -191,6 +191,12 @@ const PRECONNECT_FN_ERROR = () => {
 };
 
 function wsRequest(url, protocols, options) {
+  if (typeof protocols === 'object' && protocols !== null && !Array.isArray(protocols)) {
+    /* eslint-disable no-param-reassign */ // function overload
+    options = protocols;
+    protocols = [];
+    /* eslint-enable no-param-reassign */
+  }
   const opts = { ...options, headers: { ...(options || {}).headers } };
 
   // Initial Promise.resolve() gives us a tick to populate connection info (i.e. set(...))

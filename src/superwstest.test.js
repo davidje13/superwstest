@@ -103,6 +103,13 @@ describe('superwstest', () => {
         .close();
     });
 
+    it('propagates options without protocols', async () => {
+      await request(server)
+        .ws('/path/ws', { headers: { 'X-Special-Header': 'yes' } })
+        .expectText('special!')
+        .close();
+    });
+
     it('sets headers', async () => {
       await request(server)
         .ws('/path/ws', ['show-test-headers'])
@@ -148,6 +155,14 @@ describe('superwstest', () => {
         .unset('FOO')
         .unset('baZ')
         .expectText('show-test-headers protocol: undefined, h2, undefined')
+        .close();
+    });
+
+    it('unsets headers specified without protocols', async () => {
+      await request(server)
+        .ws('/path/ws', { headers: { 'X-Special-Header': 'yes' } })
+        .unset('X-Special-Header')
+        .expectText('hello')
         .close();
     });
 
