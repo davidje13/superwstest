@@ -363,7 +363,11 @@ const request = (server, { shutdownDelay = 0 } = {}) => {
     if (!server.address()) {
       // see https://github.com/visionmedia/supertest/issues/566
       throw new Error(
-        'Server must be listening: beforeEach((done) => server.listen(0, done));',
+        'Server must be listening:\n' +
+        'beforeEach((done) => server.listen(0, done));\n' +
+        'afterEach((done) => server.close(done));\n' +
+        '\n' +
+        'supertest\'s request(app) syntax is not supported (find out more: https://github.com/davidje13/superwstest#why-isnt-requestapp-supported)',
       );
     }
 

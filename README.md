@@ -393,3 +393,53 @@ request(server).ws('...')
 
 *note: this differs from `Promise.then` because you can continue to
 chain web socket actions and expectations.*
+
+## FAQ
+
+### My server is closing the connection immediately with code 1002
+
+Your server is probably trying to indicate that you need to specify a
+particular sub-protocol when connecting:
+
+```javascript
+request(myServer)
+  .ws('/path/ws', 'my-protocol-here')
+```
+
+You will need to check the documentation for the server library you are
+using to find out which subprotocol is needed. If multiple sub-protocols
+are needed, you can provide an array of strings.
+
+### Why isn't `request(app)` supported?
+
+This project aims to be API-compatible with `supertest` wherever possible,
+but does not support the ability to pass an `express` app directly into
+`request()` (instead, the server must be started in advance and the server
+object passed in). The recommended approach is:
+
+```javascript
+beforeEach((done) => {
+  server.listen(0, 'localhost', done);
+});
+
+afterEach((done) => {
+  server.close(done);
+});
+```
+
+There are several reasons for not supporting this feature:
+
+- `supertest`'s implementation
+  [has a bug](https://github.com/visionmedia/supertest/issues/566) where it
+  does not wait for the server to start before making requests. This can lead
+  to flakey tests. For this reason it seems beneficial to discourage this
+  approach in general (for both WebSocket and non-WebSocket tests).
+- It is not possible for this library to reliably know when a test has ended,
+  so it is not obvious when the auto-started server should be closed.
+  `supertest`
+  [never closes these auto-started servers](https://github.com/visionmedia/supertest/issues/437)
+  (leading to
+  [a large number of servers being spawned](https://github.com/visionmedia/supertest/issues/489)
+  during a test run), but even this approach is not viable for WebSocket
+  testing (typical web requests are short-lived, but websockets are long-lived
+  and any dangling connections will prevent the test process from terminating).
