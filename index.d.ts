@@ -32,12 +32,12 @@ declare module 'superwstest' {
 
     expectMessage<T>(
       conversion: (received: ReceivedMessage) => T,
-      test: (message: T) => (boolean | undefined),
+      test: (message: T) => (boolean | void),
     ): this;
 
-    expectText(expected?: string | RegExp | ((message: string) => (boolean | undefined))): this;
-    expectJson(expected?: JsonValue | ((message: any) => (boolean | undefined))): this;
-    expectBinary(expected?: Uint8Array | Buffer | ArrayBuffer | number[] | ((message: Uint8Array) => (boolean | undefined))): this;
+    expectText(expected?: string | RegExp | ((message: string) => (boolean | void))): this;
+    expectJson(expected?: JsonValue | ((message: any) => (boolean | void))): this;
+    expectBinary(expected?: Uint8Array | Buffer | ArrayBuffer | number[] | ((message: Uint8Array) => (boolean | void))): this;
 
     close(code?: number, reason?: string): this;
     expectClosed(
@@ -45,7 +45,7 @@ declare module 'superwstest' {
       expectedReason?: string | null,
     ): this;
 
-    expectUpgrade(test: (upgradeResponse: IncomingMessage) => (boolean | undefined)): this;
+    expectUpgrade(test: (upgradeResponse: IncomingMessage) => (boolean | void)): this;
 
     expectConnectionError(expectedCode?: number | null): Promise<WebSocket>;
   }
