@@ -47,7 +47,7 @@ declare module 'superwstest' {
 
     expectUpgrade(test: (upgradeResponse: IncomingMessage) => (boolean | undefined)): this;
 
-    expectConnectionError(expectedCode?: number | null): Promise<WebSocket>;
+    expectConnectionError(expectedCode?: number | string | null): Promise<WebSocket>;
   }
 
   export interface SuperWSTest extends SuperTest<Test> {
