@@ -2,7 +2,7 @@ import makeErrorServer from './test-helpers/errorserver';
 import makeSubprotocolServer from './test-helpers/subprotocolserver';
 import request from './superwstest';
 
-describe('superwstest-errors', () => {
+describe('superwstest-http-errors', () => {
   const server = makeErrorServer();
 
   beforeEach((done) => {
@@ -42,7 +42,7 @@ describe('superwstest-errors', () => {
   });
 });
 
-describe('superwstest-error-message', () => {
+describe('superwstest-protocol-errors', () => {
   const server = makeSubprotocolServer();
 
   beforeEach((done) => {
@@ -55,7 +55,8 @@ describe('superwstest-error-message', () => {
 
   it('checks the error message on connection failure', async () => {
     await request(server)
-      .ws('/anything', 'unknown_subprotocol').expectConnectionError('Server sent an invalid subprotocol');
+      .ws('/anything', 'unknown_subprotocol')
+      .expectConnectionError('Server sent an invalid subprotocol');
   });
 
   it('produces errors if the expected error message does not match', async () => {
