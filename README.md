@@ -343,7 +343,10 @@ request(server).ws('...')
   .expectConnectionError(); // any error
 
 request(server).ws('...')
-  .expectConnectionError(404); // specific error
+  .expectConnectionError(404); // specific error code
+
+request(server).ws('...')
+  .expectConnectionError('Server sent an invalid subprotocol'); // specific error message
 ```
 
 ### `.expectUpgrade(test)`
