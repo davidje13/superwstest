@@ -205,7 +205,9 @@ request(server).ws('...')
 ### `.expectJson([expected])`
 
 Waits for the next message to arrive, deserialises it using `JSON.parse`,
-then checks that it matches the given data (deep equality) or function.
+then checks that it matches the given data
+([deep equality](https://nodejs.org/api/util.html#utilisdeepstrictequalval1-val2))
+or function.
 If no parameter is given, this only checks that the message is valid JSON.
 
 ```javascript

@@ -38,7 +38,6 @@
     "@types/supertest": "<7",
     "@types/ws": "7.x || 8.x",
     "blocking-queue": "0.x",
-    "fast-deep-equal": "3.x",
     "supertest": "4.x || 5.x || 6.x",
     "ws": "7.x || 8.x"
   },

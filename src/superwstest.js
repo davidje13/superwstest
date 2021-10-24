@@ -1,6 +1,6 @@
+import { isDeepStrictEqual } from 'util';
 import stRequest, { Test } from 'supertest';
 import BlockingQueue from 'blocking-queue';
-import equal from 'fast-deep-equal';
 import WebSocket from 'ws';
 
 const REGEXP_HTTP = /^http/;
@@ -102,7 +102,7 @@ const wsMethods = {
       if (result === false) {
         throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
       }
-    } else if (!equal(received, check)) {
+    } else if (!isDeepStrictEqual(received, check)) {
       throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
     }
   },
