@@ -1,7 +1,7 @@
 import { isDeepStrictEqual } from 'util';
 import stRequest, { Test } from 'supertest';
-import BlockingQueue from 'blocking-queue';
 import WebSocket from 'ws';
+import BlockingQueue from './BlockingQueue';
 
 const REGEXP_HTTP = /^http/;
 
@@ -87,9 +87,11 @@ const wsMethods = {
   }),
   wait: (ws, ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   exec: async (ws, fn) => fn(ws),
-  expectMessage: async (ws, conversion, check = undefined) => {
+  expectMessage: async (ws, conversion, check = undefined, { timeout } = {}) => {
     const received = await Promise.race([
-      ws.messages.pop(),
+      ws.messages.pop(timeout).catch((e) => {
+        throw new Error(`Expected message ${stringify(check)}, but got ${e}`);
+      }),
       ws.closed.then(({ code, data }) => {
         throw new Error(`Expected message ${stringify(check)}, but connection closed: ${code} "${data}"`);
       }),
@@ -106,7 +108,7 @@ const wsMethods = {
       throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
     }
   },
-  expectText: (ws, expected) => {
+  expectText: (ws, expected, options) => {
     let check;
     if (expected instanceof RegExp) {
       check = (value) => expected.test(value);
@@ -114,10 +116,10 @@ const wsMethods = {
     } else {
       check = expected;
     }
-    return wsMethods.expectMessage(ws, msgText, check);
+    return wsMethods.expectMessage(ws, msgText, check, options);
   },
-  expectJson: (ws, check) => wsMethods.expectMessage(ws, msgJson, check),
-  expectBinary: (ws, expected) => {
+  expectJson: (ws, check, options) => wsMethods.expectMessage(ws, msgJson, check, options),
+  expectBinary: (ws, expected, options) => {
     let check;
     if (typeof expected === 'function') {
       check = expected;
@@ -126,7 +128,7 @@ const wsMethods = {
       check = (value) => compareBinary(value, norm);
       check.expectedMessage = stringify(norm);
     }
-    return wsMethods.expectMessage(ws, msgBinary, check);
+    return wsMethods.expectMessage(ws, msgBinary, check, options);
   },
   close: (ws, code, message) => ws.close(code, message),
   expectClosed: async (ws, expectedCode = null, expectedMessage = null) => {

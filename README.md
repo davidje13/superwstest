@@ -101,9 +101,9 @@ provide compatibility with native supertest requests such as `post`,
 - [request(...).ws(path[, protocols][, options])](#requestserverwspath-protocols-options)
   - [.set(header, value)](#setheader-value)
   - [.unset(header)](#unsetheader)
-  - [.expectText([expected])](#expecttextexpected)
-  - [.expectJson([expected])](#expectjsonexpected)
-  - [.expectBinary([expected])](#expectbinaryexpected)
+  - [.expectText([expected[, options]])](#expecttextexpected-options)
+  - [.expectJson([expected[, options]])](#expectjsonexpected-options)
+  - [.expectBinary([expected[, options]])](#expectbinaryexpected-options)
   - [.sendText(text)](#sendtexttext)
   - [.sendJson(json)](#sendjsonjson)
   - [.sendBinary(data)](#sendbinarydata)
@@ -176,7 +176,7 @@ request(server).ws('...')
 This function cannot be called after the connection has been established
 (i.e. after calling `send` or `expect*`).
 
-### `.expectText([expected])`
+### `.expectText([expected[, options]])`
 
 Waits for the next message to arrive then checks that it matches the given
 text (exact match), regular expression, or function. If no parameter is
@@ -202,7 +202,23 @@ request(server).ws('...')
   })
 ```
 
-### `.expectJson([expected])`
+A second parameter can be given with additional options:
+
+- `timeout`: wait up to the given number of milliseconds for a message
+  to arrive before failing the test (defaults to infinity).
+
+  ```javascript
+  request(server).ws('...')
+    .expectText('hello', { timeout: 1000 })
+    .expectText(undefined, { timeout: 1000 })
+  ```
+
+  Note that for the most reliable tests, it is recommended to stick with
+  the default (infinite) timeout. This option is provided as an escape
+  hatch when writing long flow tests where the test timeout is
+  unreasonably large for detecting an early failure.
+
+### `.expectJson([expected[, options]])`
 
 Waits for the next message to arrive, deserialises it using `JSON.parse`,
 then checks that it matches the given data
@@ -229,7 +245,23 @@ request(server).ws('...')
   })
 ```
 
-### `.expectBinary([expected])`
+A second parameter can be given with additional options:
+
+- `timeout`: wait up to the given number of milliseconds for a message
+  to arrive before failing the test (defaults to infinity).
+
+  ```javascript
+  request(server).ws('...')
+    .expectJson({ foo: 'bar' }, { timeout: 1000 })
+    .expectJson(undefined, { timeout: 1000 })
+  ```
+
+  Note that for the most reliable tests, it is recommended to stick with
+  the default (infinite) timeout. This option is provided as an escape
+  hatch when writing long flow tests where the test timeout is
+  unreasonably large for detecting an early failure.
+
+### `.expectBinary([expected[, options]])`
 
 Waits for the next message to arrive then checks that it matches the given
 array / buffer (exact match) or function. If no parameter is given,
@@ -256,6 +288,22 @@ request(server).ws('...')
     expect(actual[0]).toBeGreaterThan(2);
   })
 ```
+
+A second parameter can be given with additional options:
+
+- `timeout`: wait up to the given number of milliseconds for a message
+  to arrive before failing the test (defaults to infinity).
+
+  ```javascript
+  request(server).ws('...')
+    .expectBinary([10, 20, 30], { timeout: 1000 })
+    .expectBinary(undefined, { timeout: 1000 })
+  ```
+
+  Note that for the most reliable tests, it is recommended to stick with
+  the default (infinite) timeout. This option is provided as an escape
+  hatch when writing long flow tests where the test timeout is
+  unreasonably large for detecting an early failure.
 
 ### `.sendText(text)`
 
@@ -423,8 +471,10 @@ but does not support the ability to pass an `express` app directly into
 object passed in). The recommended approach is:
 
 ```javascript
+let server;
+
 beforeEach((done) => {
-  server.listen(0, 'localhost', done);
+  server = app.listen(0, 'localhost', done);
 });
 
 afterEach((done) => {

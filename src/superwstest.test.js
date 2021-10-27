@@ -408,6 +408,33 @@ describe('superwstest', () => {
       .toEqual('Expected message "nope", but connection closed: 4321 "Oops"');
   });
 
+  it('produces errors if a timeout occurs while reading', async () => {
+    let capturedError = null;
+
+    try {
+      await request(server)
+        .ws('/path/ws')
+        .expectText('hello')
+        .expectText('nope', { timeout: 100 });
+    } catch (e) {
+      capturedError = e;
+    }
+
+    expect(capturedError).not.toEqual(null);
+    expect(capturedError.message)
+      .toEqual('Expected message "nope", but got Error: Timeout after 100ms');
+  });
+
+  it('cancels timeout errors after a successful message', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectText('hello')
+      .sendText('ping')
+      .expectText('echo ping', { timeout: 50 })
+      .wait(100)
+      .close();
+  });
+
   it('produces errors if the connection closes with an unexpected code', async () => {
     let capturedError = null;
 

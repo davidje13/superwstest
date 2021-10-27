@@ -12,6 +12,10 @@ declare module 'superwstest' {
     isBinary: boolean;
   }
 
+  export interface ExpectMessageOptions {
+    timeout?: number;
+  }
+
   export interface WSChain extends Promise<WebSocket> {
     set(header: string, value: string): this;
     set(header: Record<string, string>): this;
@@ -27,17 +31,24 @@ declare module 'superwstest' {
 
     expectMessage<T>(
       conversion: (received: ReceivedMessage) => T,
-      expected?: T | null,
+      expected?: T | ((message: T) => (boolean | void)) | null | undefined,
+      options?: ExpectMessageOptions | undefined,
     ): this;
 
-    expectMessage<T>(
-      conversion: (received: ReceivedMessage) => T,
-      test: (message: T) => (boolean | void),
+    expectText(
+      expected?: string | RegExp | ((message: string) => (boolean | void)) | undefined,
+      options?: ExpectMessageOptions | undefined,
     ): this;
 
-    expectText(expected?: string | RegExp | ((message: string) => (boolean | void))): this;
-    expectJson(expected?: JsonValue | ((message: any) => (boolean | void))): this;
-    expectBinary(expected?: Uint8Array | Buffer | ArrayBuffer | number[] | ((message: Uint8Array) => (boolean | void))): this;
+    expectJson(
+      expected?: JsonValue | ((message: any) => (boolean | void)) | undefined,
+      options?: ExpectMessageOptions | undefined,
+    ): this;
+
+    expectBinary(
+      expected?: Uint8Array | Buffer | ArrayBuffer | number[] | ((message: Uint8Array) => (boolean | void)) | undefined,
+      options?: ExpectMessageOptions | undefined,
+    ): this;
 
     close(code?: number, reason?: string): this;
     expectClosed(
