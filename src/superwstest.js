@@ -87,9 +87,10 @@ const wsMethods = {
   }),
   wait: (ws, ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   exec: async (ws, fn) => fn(ws),
-  expectMessage: async (ws, conversion, check = undefined, { timeout } = {}) => {
+  expectMessage: async (ws, conversion, check = undefined, options = undefined) => {
+    const opts = { ...ws.defaultExpectOptions, ...options };
     const received = await Promise.race([
-      ws.messages.pop(timeout).catch((e) => {
+      ws.messages.pop(opts.timeout).catch((e) => {
         throw new Error(`Expected message ${stringify(check)}, but got ${e}`);
       }),
       ws.closed.then(({ code, data }) => {
@@ -192,7 +193,7 @@ const PRECONNECT_FN_ERROR = () => {
   throw new Error('WebSocket has already been established; cannot change configuration');
 };
 
-function wsRequest(url, protocols, options) {
+function wsRequest(config, url, protocols, options) {
   if (typeof protocols === 'object' && protocols !== null && !Array.isArray(protocols)) {
     /* eslint-disable no-param-reassign */ // function overload
     options = protocols;
@@ -216,6 +217,7 @@ function wsRequest(url, protocols, options) {
     // ws.on('close', () => console.log('CLOSE'));
     // ws.on('message', (m) => console.log('MESSAGE', m));
 
+    Object.assign(ws, config);
     ws.messages = new BlockingQueue();
     const errors = new BlockingQueue();
     const closed = new BlockingQueue();
@@ -360,7 +362,7 @@ function registerShutdown(server, shutdownDelay) {
   };
 }
 
-const request = (server, { shutdownDelay = 0 } = {}) => {
+const request = (server, { shutdownDelay = 0, defaultExpectOptions = {} } = {}) => {
   if (typeof server !== 'string') {
     if (!server.address()) {
       // see https://github.com/visionmedia/supertest/issues/566
@@ -376,8 +378,9 @@ const request = (server, { shutdownDelay = 0 } = {}) => {
     registerShutdown(server, shutdownDelay);
   }
 
+  const wsConfig = { defaultExpectOptions };
   const obj = stRequest(server);
-  obj.ws = (path, ...args) => wsRequest(getServerWsPath(server, path), ...args);
+  obj.ws = (path, ...args) => wsRequest(wsConfig, getServerWsPath(server, path), ...args);
 
   return obj;
 };

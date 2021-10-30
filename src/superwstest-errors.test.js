@@ -26,19 +26,11 @@ describe('superwstest-http-errors', () => {
   });
 
   it('produces errors if the expected status code does not match', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/anything')
-        .expectConnectionError(405);
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected connection failure with message "Unexpected server response: 405", got "Unexpected server response: 404"');
+        .expectConnectionError(405),
+    ).rejects.toThrow('Expected connection failure with message "Unexpected server response: 405", got "Unexpected server response: 404"');
   });
 });
 
@@ -60,18 +52,10 @@ describe('superwstest-protocol-errors', () => {
   });
 
   it('produces errors if the expected error message does not match', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/anything', 'unknown_subprotocol')
-        .expectConnectionError('unknown error message');
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected connection failure with message "unknown error message", got "Server sent an invalid subprotocol"');
+        .expectConnectionError('unknown error message'),
+    ).rejects.toThrow('Expected connection failure with message "unknown error message", got "Server sent an invalid subprotocol"');
   });
 });

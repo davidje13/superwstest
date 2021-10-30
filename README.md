@@ -133,6 +133,17 @@ Typically this is immediately followed by `.ws(...)` or `.get(...)` etc.
   request(server, { shutdownDelay: 500 }).ws(path)
   ```
 
+- `defaultExpectOptions`: a set of options which are passed to all
+  `expect*` calls in the current chain (e.g. allows setting a timeout
+  for all expectations in the chain):
+
+  ```javascript
+  request(server, { defaultExpectOptions: { timeout: 5000 } })
+    .ws(path)
+    .expectText('hello') // implicit { timeout: 5000 }
+    .expectText('hi', { timeout: 9000 }) // overrides default
+  ```
+
 ### `request(server).ws(path[, protocols][, options])`
 
 Returns a `Promise` (eventually returning the `WebSocket`) with
@@ -218,6 +229,9 @@ A second parameter can be given with additional options:
   hatch when writing long flow tests where the test timeout is
   unreasonably large for detecting an early failure.
 
+These options can also be configured for the whole chain in the
+[request call](#requestserver-options).
+
 ### `.expectJson([expected[, options]])`
 
 Waits for the next message to arrive, deserialises it using `JSON.parse`,
@@ -260,6 +274,9 @@ A second parameter can be given with additional options:
   the default (infinite) timeout. This option is provided as an escape
   hatch when writing long flow tests where the test timeout is
   unreasonably large for detecting an early failure.
+
+These options can also be configured for the whole chain in the
+[request call](#requestserver-options).
 
 ### `.expectBinary([expected[, options]])`
 
@@ -304,6 +321,9 @@ A second parameter can be given with additional options:
   the default (infinite) timeout. This option is provided as an escape
   hatch when writing long flow tests where the test timeout is
   unreasonably large for detecting an early failure.
+
+These options can also be configured for the whole chain in the
+[request call](#requestserver-options).
 
 ### `.sendText(text)`
 

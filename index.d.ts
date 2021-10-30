@@ -16,6 +16,11 @@ declare module 'superwstest' {
     timeout?: number;
   }
 
+  export interface RequestOptions {
+    shutdownDelay?: number;
+    defaultExpectOptions?: ExpectMessageOptions;
+  }
+
   export interface WSChain extends Promise<WebSocket> {
     set(header: string, value: string): this;
     set(header: Record<string, string>): this;
@@ -64,10 +69,6 @@ declare module 'superwstest' {
   export interface SuperWSTest extends SuperTest<Test> {
     ws(path: string, options?: WebSocket.ClientOptions | ClientRequestArgs): WSChain;
     ws(path: string, protocols?: string | string[], options?: WebSocket.ClientOptions | ClientRequestArgs): WSChain;
-  }
-
-  export interface RequestOptions {
-    shutdownDelay?: number;
   }
 
   function request(

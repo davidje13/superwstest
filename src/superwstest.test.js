@@ -167,16 +167,9 @@ describe('superwstest', () => {
     });
 
     it('cannot be used once the connection is established', async () => {
-      let capturedError = null;
-
       const chain = request(server).ws('/path/ws').expectText('hello');
-      try {
-        chain.set('a', 'b');
-      } catch (e) {
-        capturedError = e;
-      }
-      expect(capturedError).not.toEqual(null);
-      expect(capturedError.message).toContain('WebSocket has already been established');
+
+      expect(() => chain.set('a', 'b')).toThrow('WebSocket has already been established');
 
       await chain.close();
     });
@@ -197,27 +190,19 @@ describe('superwstest', () => {
   });
 
   it('produces errors if the connection unexpectedly succeeds', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/anything')
-        .expectConnectionError();
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected connection failure, but succeeded');
+        .expectConnectionError(),
+    ).rejects.toThrow('Expected connection failure, but succeeded');
   });
 
   it('closes if the connection unexpectedly succeeds', async () => {
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/anything')
-        .expectConnectionError();
-    } catch (e) { /* expected */ }
+        .expectConnectionError(),
+    ).rejects.toThrow();
 
     await delay(100); // wait for connection closure to reach server
 
@@ -234,42 +219,34 @@ describe('superwstest', () => {
   });
 
   it('produces errors if an expectation is not met', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
-        .expectText('nope');
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected message "nope", got "hello"');
+        .expectText('nope'),
+    ).rejects.toThrow('Expected message "nope", got "hello"');
   });
 
   it('stops execution of the chain if an expectation is not met', async () => {
     let runs = 0;
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .exec(() => { runs += 1; })
         .expectText('nope')
-        .exec(() => { runs += 1; });
-    } catch (e) { /* expected */ }
+        .exec(() => { runs += 1; }),
+    ).rejects.toThrow();
 
     expect(runs).toEqual(1);
   });
 
   it('closes if an expectation is not met', async () => {
     let ws;
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .exec((w) => { ws = w; })
-        .expectText('nope');
-    } catch (e) { /* expected */ }
+        .expectText('nope'),
+    ).rejects.toThrow();
 
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
@@ -293,19 +270,11 @@ describe('superwstest', () => {
       .expectText((actual) => actual.includes('he'))
       .close();
 
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
-        .expectText((actual) => actual.includes('no'));
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message).toContain('Expected message matching function');
-    expect(capturedError.message).toContain('got "hello"');
+        .expectText((actual) => actual.includes('no')),
+    ).rejects.toThrow(/Expected message matching function.*got "hello"/);
   });
 
   it('tests against regular expressions', async () => {
@@ -314,179 +283,98 @@ describe('superwstest', () => {
       .expectText(/^hello$/)
       .close();
 
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
-        .expectText(/^nope$/);
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message).toContain('Expected message matching /^nope$/');
-    expect(capturedError.message).toContain('got "hello"');
+        .expectText(/^nope$/),
+    ).rejects.toThrow(/Expected message matching \/\^nope\$\/.*got "hello"/);
   });
 
   it('fails if JSON data does not match', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .expectText()
         .sendText('{"foo":"bar"}')
-        .expectJson({ foo: 'nope' });
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message).toContain('Expected message {"foo":"nope"}');
-    expect(capturedError.message).toContain('got {"foo":"bar"}');
+        .expectJson({ foo: 'nope' }),
+    ).rejects.toThrow(/Expected message {"foo":"nope"}.*got {"foo":"bar"}/);
   });
 
   it('closes if JSON data does not match', async () => {
     let ws;
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .exec((w) => { ws = w; })
         .sendText('{"foo":"bar"}')
-        .expectJson({ foo: 'nope' });
-    } catch (e) { /* expected */ }
+        .expectJson({ foo: 'nope' }),
+    ).rejects.toThrow();
 
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
   it('fails if data is not parsable as JSON', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .expectText()
         .sendText('nope')
-        .expectJson({ foo: 'bar' });
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message).toContain('Unexpected token e');
+        .expectJson({ foo: 'bar' }),
+    ).rejects.toThrow('Unexpected token e');
   });
 
   it('closes if data is not parsable as JSON', async () => {
     let ws;
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .exec((w) => { ws = w; })
         .sendText('nope')
-        .expectJson({ foo: 'bar' });
-    } catch (e) { /* expected */ }
+        .expectJson({ foo: 'bar' }),
+    ).rejects.toThrow();
 
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
   it('produces errors if the connection closes while reading', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .expectText('hello')
         .sendText('trigger-server-close')
-        .expectText('nope');
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected message "nope", but connection closed: 4321 "Oops"');
-  });
-
-  it('produces errors if a timeout occurs while reading', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
-        .ws('/path/ws')
-        .expectText('hello')
-        .expectText('nope', { timeout: 100 });
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected message "nope", but got Error: Timeout after 100ms');
-  });
-
-  it('cancels timeout errors after a successful message', async () => {
-    await request(server)
-      .ws('/path/ws')
-      .expectText('hello')
-      .sendText('ping')
-      .expectText('echo ping', { timeout: 50 })
-      .wait(100)
-      .close();
+        .expectText('nope'),
+    ).rejects.toThrow('Expected message "nope", but connection closed: 4321 "Oops"');
   });
 
   it('produces errors if the connection closes with an unexpected code', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .expectText('hello')
         .sendText('trigger-server-close')
-        .expectClosed(4444);
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected close code 4444, got 4321 "Oops"');
+        .expectClosed(4444),
+    ).rejects.toThrow('Expected close code 4444, got 4321 "Oops"');
   });
 
   it('produces errors if the connection closes with an unexpected message', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .expectText('hello')
         .sendText('trigger-server-close')
-        .expectClosed(4321, 'Nope');
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected close message "Nope", got 4321 "Oops"');
+        .expectClosed(4321, 'Nope'),
+    ).rejects.toThrow('Expected close message "Nope", got 4321 "Oops"');
   });
 
   it('produces errors if the connection closes while sending', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .expectText('hello')
         .sendText('trigger-server-close')
         .wait(100)
-        .sendText('nope');
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message).toEqual('Cannot send message; connection closed with 4321 "Oops"');
+        .sendText('nope'),
+    ).rejects.toThrow('Cannot send message; connection closed with 4321 "Oops"');
   });
 
   it('sends arbitrary messages via send', async () => {
@@ -522,39 +410,23 @@ describe('superwstest', () => {
   });
 
   it('produces errors if a binary expectation is not met', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .expectText()
         .sendBinary(new Uint8Array([0, 10]))
-        .expectBinary(new Uint8Array([111, 0]));
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected message [6f 00], got [6f 00 0a]');
+        .expectBinary(new Uint8Array([111, 0])),
+    ).rejects.toThrow('Expected message [6f 00], got [6f 00 0a]');
   });
 
   it('produces errors if text is received when expecting binary', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .expectText()
         .sendText('x')
-        .expectBinary();
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected binary message, got text');
+        .expectBinary(),
+    ).rejects.toThrow('Expected binary message, got text');
   });
 
   it('executes arbitrary code via exec', async () => {
@@ -588,65 +460,42 @@ describe('superwstest', () => {
 
   it('closes if exec throws', async () => {
     let ws;
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .exec((w) => { ws = w; })
-        .exec(() => { throw new Error(); });
-    } catch (e) { /* expected */ }
+        .exec(() => { throw new Error(); }),
+    ).rejects.toThrow();
 
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
   it('produces errors if reading after the connection has closed', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .expectText('hello')
         .close()
-        .expectText('nope');
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message)
-      .toEqual('Expected message "nope", but connection closed: 1005 ""');
+        .expectText('nope'),
+    ).rejects.toThrow('Expected message "nope", but connection closed: 1005 ""');
   });
 
   it('produces errors if sending after the connection has closed', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
         .expectText('hello')
         .close()
-        .sendText('nope');
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message).toContain('Cannot send message; connection closed with 1005 ""');
+        .sendText('nope'),
+    ).rejects.toThrow('Cannot send message; connection closed with 1005 ""');
   });
 
   it('produces errors if the upgrade check fails', async () => {
-    let capturedError = null;
-
-    try {
-      await request(server)
+    await expect(
+      () => request(server)
         .ws('/path/ws')
-        .expectUpgrade((req) => req.statusCode === 200);
-    } catch (e) {
-      capturedError = e;
-    }
-
-    expect(capturedError).not.toEqual(null);
-    expect(capturedError.message).toContain('Expected Upgrade matching assertion');
-    expect(capturedError.message).toContain('status 101');
+        .expectUpgrade((req) => req.statusCode === 200),
+    ).rejects.toThrow(/Expected Upgrade matching assertion.*status 101/);
   });
 
   it('allows expectUpgrade to return undefined', async () => {
