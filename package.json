@@ -4,15 +4,16 @@
   "description": "supertest with added WebSocket capabilities",
   "files": [
     "build/**/*",
-    "index.d.ts"
+    "src/**/*",
+    "index.d.ts",
+    "!**/.DS_Store"
   ],
-  "main": "build/index.js",
+  "main": "build/superwstest.js",
+  "module": "src/superwstest.mjs",
   "types": "index.d.ts",
   "scripts": {
-    "build": "webpack --mode production",
-    "lint": "eslint --format codeframe --ext mjs,jsx,js src",
-    "test": "lean-test src --parallel-suites",
-    "posttest": "npm run lint"
+    "format": "prettier --write .",
+    "test": "lean-test test --parallel-suites && rollup --config rollup.config.js && test/run-package.sh && prettier --check ."
   },
   "repository": {
     "type": "git",
@@ -40,12 +41,8 @@
     "ws": "7.x || 8.x"
   },
   "devDependencies": {
-    "@neutrinojs/airbnb-base": "9.x",
-    "@neutrinojs/library": "9.x",
-    "eslint": "7.x",
     "lean-test": "1.x",
-    "neutrino": "9.x",
-    "webpack": "4.x",
-    "webpack-cli": "3.x"
+    "prettier": "2.5.1",
+    "rollup": "2.x"
   }
 }

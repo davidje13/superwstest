@@ -1,6 +1,6 @@
 declare module 'superwstest' {
   import type { Server, ClientRequestArgs, IncomingMessage } from 'http';
-  import type WebSocket from 'ws';
+  import type { WebSocket, ClientOptions } from 'ws';
   import type { SuperTest, Test } from 'supertest';
 
   type JsonObject = { [member: string]: JsonValue };
@@ -26,37 +26,48 @@ declare module 'superwstest' {
     set(header: Record<string, string>): this;
     unset(header: string): this;
 
-    send(message: any, options?: {
-      mask?: boolean | undefined;
-      binary?: boolean | undefined;
-      compress?: boolean | undefined;
-      fin?: boolean | undefined;
-    } | undefined): this;
+    send(
+      message: any,
+      options?:
+        | {
+            mask?: boolean | undefined;
+            binary?: boolean | undefined;
+            compress?: boolean | undefined;
+            fin?: boolean | undefined;
+          }
+        | undefined,
+    ): this;
     sendText(message: any): this;
     sendJson(message: JsonValue): this;
     sendBinary(message: Uint8Array | Buffer | ArrayBuffer | number[]): this;
 
     wait(milliseconds: number): this;
-    exec(fn: (ws: WebSocket) => (Promise<void> | void)): this;
+    exec(fn: (ws: WebSocket) => Promise<void> | void): this;
 
     expectMessage<T>(
       conversion: (received: ReceivedMessage) => T,
-      expected?: T | ((message: T) => (boolean | void)) | null | undefined,
+      expected?: T | ((message: T) => boolean | void) | null | undefined,
       options?: ExpectMessageOptions | undefined,
     ): this;
 
     expectText(
-      expected?: string | RegExp | ((message: string) => (boolean | void)) | undefined,
+      expected?: string | RegExp | ((message: string) => boolean | void) | undefined,
       options?: ExpectMessageOptions | undefined,
     ): this;
 
     expectJson(
-      expected?: JsonValue | ((message: any) => (boolean | void)) | undefined,
+      expected?: JsonValue | ((message: any) => boolean | void) | undefined,
       options?: ExpectMessageOptions | undefined,
     ): this;
 
     expectBinary(
-      expected?: Uint8Array | Buffer | ArrayBuffer | number[] | ((message: Uint8Array) => (boolean | void)) | undefined,
+      expected?:
+        | Uint8Array
+        | Buffer
+        | ArrayBuffer
+        | number[]
+        | ((message: Uint8Array) => boolean | void)
+        | undefined,
       options?: ExpectMessageOptions | undefined,
     ): this;
 
@@ -66,14 +77,18 @@ declare module 'superwstest' {
       expectedReason?: string | null | undefined,
     ): this;
 
-    expectUpgrade(test: (upgradeResponse: IncomingMessage) => (boolean | void)): this;
+    expectUpgrade(test: (upgradeResponse: IncomingMessage) => boolean | void): this;
 
     expectConnectionError(expectedCode?: number | string | null | undefined): Promise<WebSocket>;
   }
 
   export interface SuperWSTest extends SuperTest<Test> {
-    ws(path: string, options?: WebSocket.ClientOptions | ClientRequestArgs | undefined): WSChain;
-    ws(path: string, protocols?: string | string[] | undefined, options?: WebSocket.ClientOptions | ClientRequestArgs | undefined): WSChain;
+    ws(path: string, options?: ClientOptions | ClientRequestArgs | undefined): WSChain;
+    ws(
+      path: string,
+      protocols?: string | string[] | undefined,
+      options?: ClientOptions | ClientRequestArgs | undefined,
+    ): WSChain;
   }
 
   interface SuperWSRequest {

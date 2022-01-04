@@ -1,17 +1,14 @@
 import http from 'http';
-import WebSocket from 'ws';
+import { WebSocketServer } from 'ws';
 
 export default () => {
   const server = http.createServer();
-  const wss = new WebSocket.Server({ server });
+  const wss = new WebSocketServer({ server });
 
   wss.on('connection', (ws, req) => {
     ws.on('message', (data, isBinary) => {
       if (isBinary || (isBinary === undefined && typeof data !== 'string')) {
-        ws.send(Buffer.concat([
-          new Uint8Array([111]),
-          new Uint8Array(data),
-        ]));
+        ws.send(Buffer.concat([new Uint8Array([111]), new Uint8Array(data)]));
         return;
       }
       const message = String(data);
@@ -27,7 +24,9 @@ export default () => {
     });
 
     if (ws.protocol === 'show-test-headers') {
-      ws.send(`show-test-headers protocol: ${req.headers.foo}, ${req.headers.bar}, ${req.headers.baz}`);
+      ws.send(
+        `show-test-headers protocol: ${req.headers.foo}, ${req.headers.bar}, ${req.headers.baz}`,
+      );
     } else if (req.headers['x-special-header']) {
       ws.send('special!');
     } else {

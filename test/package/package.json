@@ -1,0 +1,11 @@
+{
+  "name": "superwstest-package-test",
+  "private": true,
+  "scripts": {
+    "test": "node commonjs.js && node es6modules.mjs && tsc typescript.ts --noEmit"
+  },
+  "devDependencies": {
+    "superwstest": "file:superwstest.tgz",
+    "typescript": "4.5.x"
+  }
+}

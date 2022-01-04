@@ -1,7 +1,7 @@
-import makeEchoServer from './test-helpers/echoserver.mjs';
-import runServer from './test-helpers/runServer.mjs';
-import noDangling from './test-helpers/noDangling.mjs';
-import baseRequest from './superwstest.mjs';
+import makeEchoServer from './helpers/echoserver.mjs';
+import runServer from './helpers/runServer.mjs';
+import noDangling from './helpers/noDangling.mjs';
+import baseRequest from '../src/superwstest.mjs';
 
 describe('superwstest-remote', () => {
   const server = makeEchoServer();
@@ -44,10 +44,6 @@ describe('superwstest-remote IPv6', () => {
 
   it('automatically converts protocol from http to ws', async () => {
     const serverAddress = `http://[::1]:${server.address().port}`;
-    await request(serverAddress)
-      .ws('/path/ws')
-      .expectText('hello')
-      .close(1001)
-      .expectClosed(1001);
+    await request(serverAddress).ws('/path/ws').expectText('hello').close(1001).expectClosed(1001);
   });
 });

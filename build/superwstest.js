@@ -1,8 +1,56 @@
-import util from 'util';
-import stRequest from 'supertest';
-import WebSocket from 'ws';
-import https from 'https';
-import BlockingQueue from './BlockingQueue.mjs';
+'use strict';
+
+var util = require('util');
+var stRequest = require('supertest');
+var WebSocket = require('ws');
+var https = require('https');
+
+function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
+
+var util__default = /*#__PURE__*/_interopDefaultLegacy(util);
+var stRequest__default = /*#__PURE__*/_interopDefaultLegacy(stRequest);
+var WebSocket__default = /*#__PURE__*/_interopDefaultLegacy(WebSocket);
+var https__default = /*#__PURE__*/_interopDefaultLegacy(https);
+
+function remove(list, item) {
+  const p = list.indexOf(item);
+  if (p !== -1) {
+    list.splice(p, 1);
+  }
+}
+
+class BlockingQueue {
+  constructor() {
+    this.pendingPush = [];
+    this.pendingPop = [];
+  }
+
+  push(o) {
+    if (this.pendingPop.length) {
+      const i = this.pendingPop.shift();
+      clearTimeout(i.tm);
+      i.resolve(o);
+    } else {
+      this.pendingPush.push(o);
+    }
+  }
+
+  pop(timeout) {
+    if (this.pendingPush.length) {
+      return Promise.resolve(this.pendingPush.shift());
+    }
+    return new Promise((resolve, reject) => {
+      const i = { resolve, tm: null };
+      this.pendingPop.push(i);
+      if (timeout !== undefined) {
+        i.tm = setTimeout(() => {
+          remove(this.pendingPop, i);
+          reject(new Error(`Timeout after ${timeout}ms`));
+        }, timeout);
+      }
+    });
+  }
+}
 
 function normaliseBinary(v) {
   return new Uint8Array(v);
@@ -94,7 +142,7 @@ const wsMethods = {
       if (result === false) {
         throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
       }
-    } else if (!util.isDeepStrictEqual(received, check)) {
+    } else if (!util__default["default"].isDeepStrictEqual(received, check)) {
       throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
     }
   },
@@ -163,7 +211,7 @@ function checkConnectionError(error, expectedCode) {
 }
 
 function isOpen(ws) {
-  return ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN;
+  return ws.readyState === WebSocket__default["default"].CONNECTING || ws.readyState === WebSocket__default["default"].OPEN;
 }
 
 function closeAndRethrow(ws) {
@@ -194,7 +242,7 @@ function wsRequest(config, url, protocols, options) {
   const opts = { ...options, headers: { ...(options || {}).headers } };
 
   const initPromise = (resolve, reject) => {
-    const ws = new WebSocket(url, protocols, opts);
+    const ws = new WebSocket__default["default"](url, protocols, opts);
     config.clientSockets.add(ws);
     const originalClose = ws.close.bind(ws);
     ws.close = (...args) => {
@@ -373,7 +421,7 @@ function getHttpBase(server) {
     );
   }
 
-  const protocol = server instanceof https.Server ? 'https' : 'http';
+  const protocol = server instanceof https__default["default"].Server ? 'https' : 'http';
   let hostname;
   if (typeof address === 'object') {
     if (address.family.toLowerCase() === 'ipv6') {
@@ -398,7 +446,7 @@ function makeScopedRequest() {
     }
 
     const wsConfig = { defaultExpectOptions, clientSockets };
-    const obj = stRequest(httpBase);
+    const obj = stRequest__default["default"](httpBase);
     obj.ws = (path, ...args) =>
       wsRequest(wsConfig, httpBase.replace(REGEXP_HTTP, 'ws') + path, ...args);
 
@@ -421,4 +469,5 @@ const request = makeScopedRequest();
 
 // temporary backwards-compatibility for CommonJS require('superwstest').default
 request.default = request;
-export default request;
+
+module.exports = request;

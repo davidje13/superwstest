@@ -1,14 +1,14 @@
 node:14:
   image: node:14
   script:
-  - npm install && npm test --ignore-scripts=false && npm run build --ignore-scripts=false
+    - npm install && npm test --ignore-scripts=false
 
 node:16:
   image: node:16
   script:
-  - npm install && npm test && npm run build
+    - npm install-test
 
 node:17:
   image: node:17
   script:
-  - npm install && npm test && NODE_OPTIONS=--openssl-legacy-provider npm run build
+    - npm install-test
