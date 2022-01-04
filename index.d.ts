@@ -13,12 +13,12 @@ declare module 'superwstest' {
   }
 
   export interface ExpectMessageOptions {
-    timeout?: number;
+    timeout?: number | undefined;
   }
 
   export interface RequestOptions {
-    shutdownDelay?: number;
-    defaultExpectOptions?: ExpectMessageOptions;
+    shutdownDelay?: number | undefined;
+    defaultExpectOptions?: ExpectMessageOptions | undefined;
   }
 
   export interface WSChain extends Promise<WebSocket> {
@@ -26,7 +26,12 @@ declare module 'superwstest' {
     set(header: Record<string, string>): this;
     unset(header: string): this;
 
-    send(message: any, options?: { mask?: boolean; binary?: boolean; compress?: boolean; fin?: boolean }): this;
+    send(message: any, options?: {
+      mask?: boolean | undefined;
+      binary?: boolean | undefined;
+      compress?: boolean | undefined;
+      fin?: boolean | undefined;
+    } | undefined): this;
     sendText(message: any): this;
     sendJson(message: JsonValue): this;
     sendBinary(message: Uint8Array | Buffer | ArrayBuffer | number[]): this;
@@ -55,24 +60,24 @@ declare module 'superwstest' {
       options?: ExpectMessageOptions | undefined,
     ): this;
 
-    close(code?: number, reason?: string): this;
+    close(code?: number | undefined, reason?: string | undefined): this;
     expectClosed(
-      expectedCode?: number | null,
-      expectedReason?: string | null,
+      expectedCode?: number | null | undefined,
+      expectedReason?: string | null | undefined,
     ): this;
 
     expectUpgrade(test: (upgradeResponse: IncomingMessage) => (boolean | void)): this;
 
-    expectConnectionError(expectedCode?: number | string | null): Promise<WebSocket>;
+    expectConnectionError(expectedCode?: number | string | null | undefined): Promise<WebSocket>;
   }
 
   export interface SuperWSTest extends SuperTest<Test> {
-    ws(path: string, options?: WebSocket.ClientOptions | ClientRequestArgs): WSChain;
-    ws(path: string, protocols?: string | string[], options?: WebSocket.ClientOptions | ClientRequestArgs): WSChain;
+    ws(path: string, options?: WebSocket.ClientOptions | ClientRequestArgs | undefined): WSChain;
+    ws(path: string, protocols?: string | string[] | undefined, options?: WebSocket.ClientOptions | ClientRequestArgs | undefined): WSChain;
   }
 
   interface SuperWSRequest {
-    (app: Server | string, options?: RequestOptions): SuperWSTest;
+    (app: Server | string, options?: RequestOptions | undefined): SuperWSTest;
     scoped(): SuperWSRequest;
     closeAll(): void;
   }
