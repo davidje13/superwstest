@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { node: '14' }
+          - { node: '16' }
+          - { node: '17' }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Test
+        run: npm install && npm test --ignore-scripts=false && npm run build --ignore-scripts=false

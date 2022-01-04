@@ -12,8 +12,7 @@
     "build": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode production",
     "lint": "eslint --format codeframe --ext mjs,jsx,js src",
     "test": "lean-test src --parallel-suites",
-    "posttest": "npm run lint",
-    "test:watch": "jest --watch"
+    "posttest": "npm run lint"
   },
   "repository": {
     "type": "git",
