@@ -9,7 +9,7 @@
   "main": "build/index.js",
   "types": "index.d.ts",
   "scripts": {
-    "build": "NODE_OPTIONS=--openssl-legacy-provider webpack --mode production",
+    "build": "webpack --mode production",
     "lint": "eslint --format codeframe --ext mjs,jsx,js src",
     "test": "lean-test src --parallel-suites",
     "posttest": "npm run lint"

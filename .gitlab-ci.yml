@@ -1,15 +1,14 @@
-.common: &common
+node:14:
+  image: node:14
   script:
   - npm install && npm test --ignore-scripts=false && npm run build --ignore-scripts=false
 
-node:14:
-  <<: *common
-  image: node:14
-
 node:16:
-  <<: *common
   image: node:16
+  script:
+  - npm install && npm test && npm run build
 
 node:17:
-  <<: *common
   image: node:17
+  script:
+  - npm install && npm test && NODE_OPTIONS=--openssl-legacy-provider npm run build
