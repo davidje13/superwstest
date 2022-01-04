@@ -91,6 +91,24 @@ ensure connections are closed in all situations (including test
 timeouts, etc.). This is not needed when testing against a local
 server because the server will close connections when closed.
 
+If you need to scope the `request` instance (to avoid `closeAll`
+interfering with other tests running in parallel in the same
+process), you can use `.scoped()` (note that this is not
+typically required when using Jest since parallel execution is
+performed using separate processes):
+
+```javascript
+import baseRequest from 'superwstest';
+
+describe('thing', () => {
+  const request = baseRequest.scoped();
+  afterEach(() => {
+    request.closeAll();
+  });
+  /* ... */
+});
+```
+
 The server URL given should be http(s) rather than ws(s); this will
 provide compatibility with native supertest requests such as `post`,
 `get`, etc. and will be converted automatically as needed.

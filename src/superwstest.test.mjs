@@ -1,7 +1,9 @@
 import WebSocket from 'ws';
 import { promisify } from 'util';
-import makeEchoServer from './test-helpers/echoserver';
-import request from './superwstest';
+import makeEchoServer from './test-helpers/echoserver.mjs';
+import runServer from './test-helpers/runServer.mjs';
+import noDangling from './test-helpers/noDangling.mjs';
+import baseRequest from './superwstest.mjs';
 
 function delay(millis) {
   return new Promise((r) => setTimeout(r, millis));
@@ -9,18 +11,9 @@ function delay(millis) {
 
 describe('superwstest', () => {
   const server = makeEchoServer();
-
-  beforeEach((done) => {
-    server.listen(0, 'localhost', done);
-  });
-
-  afterEach((done) => {
-    const danglingConnections = request.closeAll();
-    server.close(done);
-    if (danglingConnections > 0) {
-      throw new Error(`Found ${danglingConnections} dangling connection(s) after test`);
-    }
-  });
+  const request = baseRequest.scoped();
+  beforeEach(runServer(server));
+  afterEach(noDangling(request));
 
   it('communicates via websockets', async () => {
     await request(server)
@@ -41,7 +34,7 @@ describe('superwstest', () => {
 
     expect(ws.readyState).toEqual(WebSocket.OPEN);
 
-    await new Promise(server.close);
+    await new Promise((resolve) => server.close(resolve));
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
@@ -78,7 +71,7 @@ describe('superwstest', () => {
     await request(server, { shutdownDelay: 6000 })
       .ws('/path/ws')
       .exec(async (ws) => {
-        closing = new Promise(server.close);
+        closing = new Promise((resolve) => server.close(resolve));
 
         await delay(100);
         expect(ws.readyState).toEqual(WebSocket.OPEN); // not closed yet
@@ -194,7 +187,8 @@ describe('superwstest', () => {
       () => request(server)
         .ws('/anything')
         .expectConnectionError(),
-    ).rejects.toThrow('Expected connection failure, but succeeded');
+      throws('Expected connection failure, but succeeded'),
+    );
   });
 
   it('closes if the connection unexpectedly succeeds', async () => {
@@ -202,7 +196,8 @@ describe('superwstest', () => {
       () => request(server)
         .ws('/anything')
         .expectConnectionError(),
-    ).rejects.toThrow();
+      throws(),
+    );
 
     await delay(100); // wait for connection closure to reach server
 
@@ -223,7 +218,8 @@ describe('superwstest', () => {
       () => request(server)
         .ws('/path/ws')
         .expectText('nope'),
-    ).rejects.toThrow('Expected message "nope", got "hello"');
+      throws('Expected message "nope", got "hello"'),
+    );
   });
 
   it('stops execution of the chain if an expectation is not met', async () => {
@@ -234,7 +230,8 @@ describe('superwstest', () => {
         .exec(() => { runs += 1; })
         .expectText('nope')
         .exec(() => { runs += 1; }),
-    ).rejects.toThrow();
+      throws(),
+    );
 
     expect(runs).toEqual(1);
   });
@@ -246,7 +243,8 @@ describe('superwstest', () => {
         .ws('/path/ws')
         .exec((w) => { ws = w; })
         .expectText('nope'),
-    ).rejects.toThrow();
+      throws(),
+    );
 
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
@@ -274,7 +272,8 @@ describe('superwstest', () => {
       () => request(server)
         .ws('/path/ws')
         .expectText((actual) => actual.includes('no')),
-    ).rejects.toThrow(/Expected message matching function.*got "hello"/);
+      throws(/Expected message matching function.*got "hello"/),
+    );
   });
 
   it('tests against regular expressions', async () => {
@@ -287,7 +286,8 @@ describe('superwstest', () => {
       () => request(server)
         .ws('/path/ws')
         .expectText(/^nope$/),
-    ).rejects.toThrow(/Expected message matching \/\^nope\$\/.*got "hello"/);
+      throws(/Expected message matching \/\^nope\$\/.*got "hello"/),
+    );
   });
 
   it('fails if JSON data does not match', async () => {
@@ -297,7 +297,8 @@ describe('superwstest', () => {
         .expectText()
         .sendText('{"foo":"bar"}')
         .expectJson({ foo: 'nope' }),
-    ).rejects.toThrow(/Expected message {"foo":"nope"}.*got {"foo":"bar"}/);
+      throws(/Expected message {"foo":"nope"}.*got {"foo":"bar"}/),
+    );
   });
 
   it('closes if JSON data does not match', async () => {
@@ -308,7 +309,8 @@ describe('superwstest', () => {
         .exec((w) => { ws = w; })
         .sendText('{"foo":"bar"}')
         .expectJson({ foo: 'nope' }),
-    ).rejects.toThrow();
+      throws(),
+    );
 
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
@@ -320,7 +322,8 @@ describe('superwstest', () => {
         .expectText()
         .sendText('nope')
         .expectJson({ foo: 'bar' }),
-    ).rejects.toThrow('Unexpected token e');
+      throws('Unexpected token e'),
+    );
   });
 
   it('closes if data is not parsable as JSON', async () => {
@@ -331,7 +334,8 @@ describe('superwstest', () => {
         .exec((w) => { ws = w; })
         .sendText('nope')
         .expectJson({ foo: 'bar' }),
-    ).rejects.toThrow();
+      throws(),
+    );
 
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
@@ -343,7 +347,8 @@ describe('superwstest', () => {
         .expectText('hello')
         .sendText('trigger-server-close')
         .expectText('nope'),
-    ).rejects.toThrow('Expected message "nope", but connection closed: 4321 "Oops"');
+      throws('Expected message "nope", but connection closed: 4321 "Oops"'),
+    );
   });
 
   it('produces errors if the connection closes with an unexpected code', async () => {
@@ -353,7 +358,8 @@ describe('superwstest', () => {
         .expectText('hello')
         .sendText('trigger-server-close')
         .expectClosed(4444),
-    ).rejects.toThrow('Expected close code 4444, got 4321 "Oops"');
+      throws('Expected close code 4444, got 4321 "Oops"'),
+    );
   });
 
   it('produces errors if the connection closes with an unexpected message', async () => {
@@ -363,7 +369,8 @@ describe('superwstest', () => {
         .expectText('hello')
         .sendText('trigger-server-close')
         .expectClosed(4321, 'Nope'),
-    ).rejects.toThrow('Expected close message "Nope", got 4321 "Oops"');
+      throws('Expected close message "Nope", got 4321 "Oops"'),
+    );
   });
 
   it('produces errors if the connection closes while sending', async () => {
@@ -374,7 +381,8 @@ describe('superwstest', () => {
         .sendText('trigger-server-close')
         .wait(100)
         .sendText('nope'),
-    ).rejects.toThrow('Cannot send message; connection closed with 4321 "Oops"');
+      throws('Cannot send message; connection closed with 4321 "Oops"'),
+    );
   });
 
   it('sends arbitrary messages via send', async () => {
@@ -416,7 +424,8 @@ describe('superwstest', () => {
         .expectText()
         .sendBinary(new Uint8Array([0, 10]))
         .expectBinary(new Uint8Array([111, 0])),
-    ).rejects.toThrow('Expected message [6f 00], got [6f 00 0a]');
+      throws('Expected message [6f 00], got [6f 00 0a]'),
+    );
   });
 
   it('produces errors if text is received when expecting binary', async () => {
@@ -426,7 +435,8 @@ describe('superwstest', () => {
         .expectText()
         .sendText('x')
         .expectBinary(),
-    ).rejects.toThrow('Expected binary message, got text');
+      throws('Expected binary message, got text'),
+    );
   });
 
   it('executes arbitrary code via exec', async () => {
@@ -465,7 +475,8 @@ describe('superwstest', () => {
         .ws('/path/ws')
         .exec((w) => { ws = w; })
         .exec(() => { throw new Error(); }),
-    ).rejects.toThrow();
+      throws(),
+    );
 
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
@@ -477,7 +488,8 @@ describe('superwstest', () => {
         .expectText('hello')
         .close()
         .expectText('nope'),
-    ).rejects.toThrow('Expected message "nope", but connection closed: 1005 ""');
+      throws('Expected message "nope", but connection closed: 1005 ""'),
+    );
   });
 
   it('produces errors if sending after the connection has closed', async () => {
@@ -487,7 +499,8 @@ describe('superwstest', () => {
         .expectText('hello')
         .close()
         .sendText('nope'),
-    ).rejects.toThrow('Cannot send message; connection closed with 1005 ""');
+      throws('Cannot send message; connection closed with 1005 ""'),
+    );
   });
 
   it('produces errors if the upgrade check fails', async () => {
@@ -495,7 +508,8 @@ describe('superwstest', () => {
       () => request(server)
         .ws('/path/ws')
         .expectUpgrade((req) => req.statusCode === 200),
-    ).rejects.toThrow(/Expected Upgrade matching assertion.*status 101/);
+      throws(/Expected Upgrade matching assertion.*status 101/),
+    );
   });
 
   it('allows expectUpgrade to return undefined', async () => {
@@ -511,5 +525,20 @@ describe('superwstest', () => {
       .expectUpgrade((req) => req.statusCode === 101)
       .expectUpgrade((req) => req.statusCode === 101)
       .close();
+  });
+});
+
+describe('superwstest IPv6', () => {
+  const server = makeEchoServer();
+  const request = baseRequest.scoped();
+  beforeEach(runServer(server, '::1'));
+  afterEach(noDangling(request));
+
+  it('connects to IPv6 servers', async () => {
+    await request(server)
+      .ws('/path/ws')
+      .expectText('hello')
+      .close(1001)
+      .expectClosed(1001);
   });
 });

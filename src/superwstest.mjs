@@ -1,22 +1,8 @@
-import { isDeepStrictEqual } from 'util';
-import stRequest, { Test } from 'supertest';
+import util from 'util';
+import stRequest from 'supertest';
 import WebSocket from 'ws';
-import BlockingQueue from './BlockingQueue';
-
-const REGEXP_HTTP = /^http/;
-
-function getServerWsPath(server, path) {
-  let httpPath;
-  if (typeof server === 'string') {
-    httpPath = server + path;
-  } else {
-    if (!server.address()) {
-      throw new Error('Server was closed');
-    }
-    httpPath = Test.prototype.serverAddress(server, path);
-  }
-  return httpPath.replace(REGEXP_HTTP, 'ws');
-}
+import https from 'https';
+import BlockingQueue from './BlockingQueue.mjs';
 
 function normaliseBinary(v) {
   return new Uint8Array(v);
@@ -105,7 +91,7 @@ const wsMethods = {
       if (result === false) {
         throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
       }
-    } else if (!isDeepStrictEqual(received, check)) {
+    } else if (!util.isDeepStrictEqual(received, check)) {
       throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
     }
   },
@@ -187,8 +173,6 @@ function findExistingHeader(headers, header) {
   return Object.keys(headers).find((h) => (h.toLowerCase() === lc)) || lc;
 }
 
-const clientSockets = new Set();
-
 const PRECONNECT_FN_ERROR = () => {
   throw new Error('WebSocket has already been established; cannot change configuration');
 };
@@ -205,11 +189,11 @@ function wsRequest(config, url, protocols, options) {
   // Initial Promise.resolve() gives us a tick to populate connection info (i.e. set(...))
   let chain = Promise.resolve().then(() => new Promise((resolve, reject) => {
     const ws = new WebSocket(url, protocols, opts);
-    clientSockets.add(ws);
+    config.clientSockets.add(ws);
     const originalClose = ws.close.bind(ws);
     ws.close = (...args) => {
       originalClose(...args);
-      clientSockets.delete(ws);
+      config.clientSockets.delete(ws);
     };
 
     // ws.on('open', () => console.log('OPEN'));
@@ -239,7 +223,7 @@ function wsRequest(config, url, protocols, options) {
     });
     ws.on('error', reject);
     ws.on('close', (code, data) => {
-      clientSockets.delete(ws);
+      config.clientSockets.delete(ws);
       closed.push({ code, data });
     });
     ws.on('open', () => {
@@ -362,35 +346,69 @@ function registerShutdown(server, shutdownDelay) {
   };
 }
 
-const request = (server, { shutdownDelay = 0, defaultExpectOptions = {} } = {}) => {
-  if (typeof server !== 'string') {
-    if (!server.address()) {
-      // see https://github.com/visionmedia/supertest/issues/566
-      throw new Error(
-        'Server must be listening:\n' +
-        'beforeEach((done) => server.listen(0, done));\n' +
-        'afterEach((done) => server.close(done));\n' +
-        '\n' +
-        'supertest\'s request(app) syntax is not supported (find out more: https://github.com/davidje13/superwstest#why-isnt-requestapp-supported)',
-      );
-    }
+const REGEXP_HTTP = /^http/;
 
-    registerShutdown(server, shutdownDelay);
+function getHttpBase(server) {
+  if (typeof server === 'string') {
+    return server;
   }
 
-  const wsConfig = { defaultExpectOptions };
-  const obj = stRequest(server);
-  obj.ws = (path, ...args) => wsRequest(wsConfig, getServerWsPath(server, path), ...args);
+  const address = server.address();
+  if (!address) {
+    // see https://github.com/visionmedia/supertest/issues/566
+    throw new Error(
+      'Server must be listening:\n' +
+      'beforeEach((done) => server.listen(0, done));\n' +
+      'afterEach((done) => server.close(done));\n' +
+      '\n' +
+      'supertest\'s request(app) syntax is not supported (find out more: https://github.com/davidje13/superwstest#why-isnt-requestapp-supported)',
+    );
+  }
 
-  return obj;
-};
+  const protocol = (server instanceof https.Server) ? 'https' : 'http';
+  let hostname;
+  if (typeof address === 'object') {
+    if (address.family.toLowerCase() === 'ipv6') {
+      hostname = `[${address.address}]`;
+    } else {
+      hostname = address.address;
+    }
+  } else {
+    hostname = address;
+  }
+  return `${protocol}://${hostname}:${address.port}`;
+}
 
-request.closeAll = () => {
-  const remaining = [...clientSockets].filter(isOpen);
-  clientSockets.clear();
-  remaining.forEach((ws) => ws.close());
-  return remaining.length;
-};
+function makeScopedRequest() {
+  const clientSockets = new Set();
+
+  const request = (server, { shutdownDelay = 0, defaultExpectOptions = {} } = {}) => {
+    const httpBase = getHttpBase(server);
+
+    if (typeof server !== 'string') {
+      registerShutdown(server, shutdownDelay);
+    }
+
+    const wsConfig = { defaultExpectOptions, clientSockets };
+    const obj = stRequest(httpBase);
+    obj.ws = (path, ...args) => wsRequest(wsConfig, httpBase.replace(REGEXP_HTTP, 'ws') + path, ...args);
+
+    return obj;
+  };
+
+  request.closeAll = () => {
+    const remaining = [...clientSockets].filter(isOpen);
+    clientSockets.clear();
+    remaining.forEach((ws) => ws.close());
+    return remaining.length;
+  };
+
+  request.scoped = () => makeScopedRequest();
+
+  return request;
+}
+
+const request = makeScopedRequest();
 
 // temporary backwards-compatibility for CommonJS require('superwstest').default
 request.default = request;

@@ -1,17 +1,12 @@
-import makeErrorServer from './test-helpers/errorserver';
-import makeSubprotocolServer from './test-helpers/subprotocolserver';
-import request from './superwstest';
+import makeErrorServer from './test-helpers/errorserver.mjs';
+import makeSubprotocolServer from './test-helpers/subprotocolserver.mjs';
+import runServer from './test-helpers/runServer.mjs';
+import baseRequest from './superwstest.mjs';
 
 describe('superwstest-http-errors', () => {
   const server = makeErrorServer();
-
-  beforeEach((done) => {
-    server.listen(0, 'localhost', done);
-  });
-
-  afterEach((done) => {
-    server.close(done);
-  });
+  const request = baseRequest.scoped();
+  beforeEach(runServer(server));
 
   it('catches connection failures', async () => {
     await request(server)
@@ -30,20 +25,15 @@ describe('superwstest-http-errors', () => {
       () => request(server)
         .ws('/anything')
         .expectConnectionError(405),
-    ).rejects.toThrow('Expected connection failure with message "Unexpected server response: 405", got "Unexpected server response: 404"');
+      throws('Expected connection failure with message "Unexpected server response: 405", got "Unexpected server response: 404"'),
+    );
   });
 });
 
 describe('superwstest-protocol-errors', () => {
   const server = makeSubprotocolServer();
-
-  beforeEach((done) => {
-    server.listen(0, 'localhost', done);
-  });
-
-  afterEach((done) => {
-    server.close(done);
-  });
+  const request = baseRequest.scoped();
+  beforeEach(runServer(server));
 
   it('checks the error message on connection failure', async () => {
     await request(server)
@@ -56,6 +46,7 @@ describe('superwstest-protocol-errors', () => {
       () => request(server)
         .ws('/anything', 'unknown_subprotocol')
         .expectConnectionError('unknown error message'),
-    ).rejects.toThrow('Expected connection failure with message "unknown error message", got "Server sent an invalid subprotocol"');
+      throws('Expected connection failure with message "unknown error message", got "Server sent an invalid subprotocol"'),
+    );
   });
 });

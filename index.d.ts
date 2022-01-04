@@ -71,14 +71,12 @@ declare module 'superwstest' {
     ws(path: string, protocols?: string | string[], options?: WebSocket.ClientOptions | ClientRequestArgs): WSChain;
   }
 
-  function request(
-    app: Server | string,
-    options?: RequestOptions,
-  ): SuperWSTest;
-
-  namespace request {
-    function closeAll(): void;
+  interface SuperWSRequest {
+    (app: Server | string, options?: RequestOptions): SuperWSTest;
+    scoped(): SuperWSRequest;
+    closeAll(): void;
   }
 
+  const request: SuperWSRequest;
   export default request;
 }

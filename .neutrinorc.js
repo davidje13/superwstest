@@ -1,6 +1,5 @@
 const airbnbBase = require('@neutrinojs/airbnb-base');
 const library = require('@neutrinojs/library');
-const jest = require('@neutrinojs/jest');
 
 module.exports = {
   options: {
@@ -13,7 +12,25 @@ module.exports = {
         rules: {
           'arrow-parens': ['error', 'always'],
           'operator-linebreak': ['error', 'after'],
-          'jest/expect-expect': ['off'],
+          'import/extensions': ['error', 'always'],
+        },
+        baseConfig: {
+          overrides: [
+            {
+              files: ['*.test.{js,mjs}'],
+              globals: {
+                describe: 'readonly',
+                it: 'readonly',
+                beforeAll: 'readonly',
+                afterAll: 'readonly',
+                beforeEach: 'readonly',
+                afterEach: 'readonly',
+                expect: 'readonly',
+                equals: 'readonly',
+                throws: 'readonly',
+              },
+            },
+          ],
         },
       },
     }),
@@ -33,6 +50,5 @@ module.exports = {
     }),
     // https://github.com/webpack/webpack/issues/3929#issuecomment-432194802
     (neutrino) => neutrino.config.output.libraryExport('default'),
-    jest(),
   ],
 };
