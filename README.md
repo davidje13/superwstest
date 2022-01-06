@@ -86,6 +86,10 @@ describe('My Remote Server', () => {
 });
 ```
 
+The server URL given should be http(s) rather than ws(s); this will
+provide compatibility with native supertest requests such as `post`,
+`get`, etc. and will be converted automatically as needed.
+
 Note that adding `request.closeAll()` to an `afterEach` will
 ensure connections are closed in all situations (including test
 timeouts, etc.). This is not needed when testing against a local
@@ -108,10 +112,6 @@ describe('thing', () => {
   /* ... */
 });
 ```
-
-The server URL given should be http(s) rather than ws(s); this will
-provide compatibility with native supertest requests such as `post`,
-`get`, etc. and will be converted automatically as needed.
 
 ## API
 
