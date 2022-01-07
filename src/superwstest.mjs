@@ -1,8 +1,37 @@
 import util from 'util';
-import stRequest from 'supertest';
 import WebSocket from 'ws';
 import https from 'https';
 import BlockingQueue from './BlockingQueue.mjs';
+
+// supertest is an optional dependency
+const stRequest = (() => {
+  try {
+    const m = require('supertest');
+    return m.default || m;
+  } catch (e) {
+    return fallbackSTRequest;
+  }
+})();
+// es6 with top-level await:
+//const stRequest = await import('supertest').then((m) => m.default, () => fallbackSTRequest);
+
+// fallback to an error when supertest methods are used
+function fallbackSTRequest() {
+  return new Proxy(
+    {},
+    {
+      get(o, prop) {
+        if (Object.prototype.hasOwnProperty.call(o, prop)) {
+          return o[prop];
+        }
+        throw new Error(
+          `request().${prop} is unavailable (supertest dependency not found).\n` +
+            'Run `npm install --save-dev supertest` to access these methods from superwstest',
+        );
+      },
+    },
+  );
+}
 
 function normaliseBinary(v) {
   return new Uint8Array(v);

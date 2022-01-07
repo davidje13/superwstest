@@ -1,13 +1,21 @@
 # SuperWSTest
 
-Extends [supertest](https://github.com/visionmedia/supertest) with
-WebSocket capabilities. This is intended for testing servers which
-support both HTTP and WebSocket requests.
+Provides a [supertest](https://github.com/visionmedia/supertest)-compatible API
+for testing WebSockets.
+
+If supertest is installed, this package also exposes supertest's API for
+convenience when testing servers which provide both HTTP and WebSocket URLs.
 
 ## Install dependency
 
 ```bash
 npm install --save-dev superwstest
+```
+
+You can also optionally install supertest for access to `.get`, `.post`, etc.:
+
+```bash
+npm install --save-dev superwstest supertest
 ```
 
 ## Usage
@@ -58,11 +66,30 @@ describe('My Server', () => {
 });
 ```
 
-Since this builds on supertest, all the HTTP checks are also available.
-
 As long as you add `server.close` in an `afterEach`, all connections
 will be closed automatically, so you do not need to close connections
 in every test.
+
+### Testing non-WebSocket endpoints
+
+If you have installed supertest, all the HTTP checks are also available
+by proxy:
+
+```javascript
+import request from 'superwstest';
+import server from './myServer';
+
+describe('My Server', () => {
+  beforeEach((done) => server.listen(0, 'localhost', done));
+  afterEach((done) => server.close(done));
+
+  it('communicates via HTTP', async () => {
+    await request(server)
+      .get('/path')
+      .expect(200);
+  });
+});
+```
 
 ### Testing a remote webserver
 
@@ -106,9 +133,7 @@ import baseRequest from 'superwstest';
 
 describe('thing', () => {
   const request = baseRequest.scoped();
-  afterEach(() => {
-    request.closeAll();
-  });
+  afterEach(() => request.closeAll());
   /* ... */
 });
 ```
@@ -500,6 +525,23 @@ request(myServer)
 You will need to check the documentation for the server library you are
 using to find out which subprotocol is needed. If multiple sub-protocols
 are needed, you can provide an array of strings.
+
+### Why do I see "supertest dependency not found" errors?
+
+Older versions of this library bundled supertest by default because they
+used some functionality from it. The latest version does not require any
+functionality from supertest but remains API-compatible with it, and for
+this reason supertest has become optional and not included by default
+(reducing dependencies when testing WebSocket-only servers).
+
+To restore the ability to use `.get`, `.post`, etc. simply run:
+
+```shell
+npm install --save-dev supertest
+```
+
+The presence of this package will detected automatically and the supertest
+API will be available via superwstest as before.
 
 ### Why isn't `request(app)` supported?
 

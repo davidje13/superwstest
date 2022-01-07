@@ -7,3 +7,7 @@ if (typeof defaultRequire !== 'function') {
 if (typeof defaultRequire.default !== 'function') {
   throw new Error("require('superwstest').default did not return superwstest function");
 }
+
+if (typeof defaultRequire('http://localhost').get !== 'function') {
+  throw new Error('supertest proxy not connected');
+}
