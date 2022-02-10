@@ -42,7 +42,7 @@ declare module 'superwstest' {
     sendBinary(message: Uint8Array | Buffer | ArrayBuffer | number[]): this;
 
     wait(milliseconds: number): this;
-    exec(fn: (ws: WebSocket) => Promise<void> | void): this;
+    exec(fn: (ws: WebSocket) => Promise<unknown> | void): this;
 
     expectMessage<T>(
       conversion: (received: ReceivedMessage) => T,
