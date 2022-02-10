@@ -510,6 +510,10 @@ request(server).ws('...')
 *note: this differs from `Promise.then` because you can continue to
 chain web socket actions and expectations.*
 
+See [the FAQ](#how-can-i-perform-another-asynchronous-task-while-a-connection-is-open)
+for examples of how `exec` can be used to perform side operations
+during a connection.
+
 ## FAQ
 
 ### My server is closing the connection immediately with code 1002
@@ -578,3 +582,57 @@ There are several reasons for not supporting this feature:
   during a test run), but even this approach is not viable for WebSocket
   testing (typical web requests are short-lived, but websockets are long-lived
   and any dangling connections will prevent the test process from terminating).
+
+### How can I perform another asynchronous task while a connection is open?
+
+Often when testing websockets, you will want to perform another action and
+check for a reaction on the websocket. This can be achieved using `exec`:
+
+```javascript
+await request(server).ws('here')
+  .sendText('hello')
+  .expectText('session open')
+  .exec(async () => {
+    await myOtherOperation();
+  })
+  .expectText('something happened')
+  .close();
+```
+
+The recommended approach is to pull these out as helper functions, for example:
+
+```javascript
+const makeThing = (name) => () => request(server)
+  .post('blah')
+  .expect(200);
+
+await request(server).ws('here')
+  .sendText('hello')
+  .expectText('session open')
+
+  .exec(makeThing('my first thing'))
+  .expectText('made "my first thing"')
+
+  .exec(makeThing('my second thing'))
+  .expectText('made "my second thing"')
+
+  .close();
+```
+
+If you need 2 websocket connections to interact with each other, you can use
+`Promise.all`:
+
+```javascript
+await Promise.all([
+  request(server).ws('here')
+    .expectText('Welcome to the chat room')
+    .sendText('Hi all! I am foo')
+    .expectText('Hi foo, I am bar')
+    .close(),
+  request(server).ws('here')
+    .expectText('Welcome to the chat room')
+    .expectText('Hi all! I am foo')
+    .sendText('Hi foo, I am bar')
+    .close(),
+]);
+```
