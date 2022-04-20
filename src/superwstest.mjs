@@ -405,7 +405,9 @@ function getHttpBase(server) {
   const protocol = server instanceof https.Server ? 'https' : 'http';
   let hostname;
   if (typeof address === 'object') {
-    if (address.family.toLowerCase() === 'ipv6') {
+    const { family } = address;
+    // check for Node 18 (numeric) and Node <18 (string) APIs for address.family
+    if (family === 6 || family === 'IPv6') {
       hostname = `[${address.address}]`;
     } else {
       hostname = address.address;

@@ -16,6 +16,7 @@ jobs:
           - { node: '14' }
           - { node: '16' }
           - { node: '17' }
+          - { node: '18' }
     steps:
       - name: Checkout
         uses: actions/checkout@v2
