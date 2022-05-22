@@ -48,8 +48,8 @@
     }
   },
   "devDependencies": {
-    "lean-test": "1.x",
-    "prettier": "2.5.1",
+    "lean-test": "2.x",
+    "prettier": "2.6.2",
     "rollup": "2.x"
   }
 }
