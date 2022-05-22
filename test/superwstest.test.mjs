@@ -1,21 +1,18 @@
 import WebSocket from 'ws';
 import { promisify } from 'util';
 import makeEchoServer from './helpers/echoserver.mjs';
-import runServer from './helpers/runServer.mjs';
-import noDangling from './helpers/noDangling.mjs';
-import baseRequest from '../src/superwstest.mjs';
+import withServer from './helpers/withServer.mjs';
+import withScopedRequest from './helpers/withScopedRequest.mjs';
 
 function delay(millis) {
   return new Promise((r) => setTimeout(r, millis));
 }
 
-describe('superwstest', () => {
-  const server = makeEchoServer();
-  const request = baseRequest.scoped();
-  beforeEach(runServer(server));
-  afterEach(noDangling(request));
+describe('superwstest', { parallel: true }, () => {
+  withServer(makeEchoServer);
+  withScopedRequest({ checkDanglingConnections: true });
 
-  it('communicates via websockets', async () => {
+  it('communicates via websockets', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectText('hello')
@@ -27,7 +24,7 @@ describe('superwstest', () => {
       .expectClosed(1001);
   });
 
-  it('closes connections automatically on server shutdown', async () => {
+  it('closes connections automatically on server shutdown', async (server, request) => {
     const ws = await request(server).ws('/path/ws').expectText('hello');
 
     expect(ws.readyState).toEqual(WebSocket.OPEN);
@@ -36,7 +33,7 @@ describe('superwstest', () => {
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
-  it('closes connections automatically when closeAll is called', async () => {
+  it('closes connections automatically when closeAll is called', async (server, request) => {
     const ws = await request(server).ws('/path/ws').expectText('hello');
 
     expect(ws.readyState).toEqual(WebSocket.OPEN);
@@ -45,7 +42,7 @@ describe('superwstest', () => {
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
-  it('waits for the given shutdownDelay before closing connections', async () => {
+  it('waits for the given shutdownDelay before closing connections', async (server, request) => {
     const ws = await request(server, { shutdownDelay: 100 }).ws('/path/ws').expectText('hello');
 
     expect(ws.readyState).toEqual(WebSocket.OPEN);
@@ -59,7 +56,7 @@ describe('superwstest', () => {
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
-  it('shuts down immediately if all connections close themselves', async () => {
+  it('shuts down immediately if all connections close themselves', async (server, request) => {
     let closing;
 
     await request(server, { shutdownDelay: 6000 })
@@ -77,7 +74,7 @@ describe('superwstest', () => {
   });
 
   describe('connection options', () => {
-    it('propagates protocol and options', async () => {
+    it('propagates protocol and options', async (server, request) => {
       await request(server)
         .ws('/path/ws', ['show-test-headers'], {
           headers: {
@@ -90,14 +87,14 @@ describe('superwstest', () => {
         .close();
     });
 
-    it('propagates options without protocols', async () => {
+    it('propagates options without protocols', async (server, request) => {
       await request(server)
         .ws('/path/ws', { headers: { 'X-Special-Header': 'yes' } })
         .expectText('special!')
         .close();
     });
 
-    it('sets headers', async () => {
+    it('sets headers', async (server, request) => {
       await request(server)
         .ws('/path/ws', ['show-test-headers'])
         .set('foo', 'abc')
@@ -107,7 +104,7 @@ describe('superwstest', () => {
         .close();
     });
 
-    it('sets multiple headers if given an object', async () => {
+    it('sets multiple headers if given an object', async (server, request) => {
       await request(server)
         .ws('/path/ws', ['show-test-headers'])
         .set({ foo: 'abc', BAR: 'def' })
@@ -116,7 +113,7 @@ describe('superwstest', () => {
         .close();
     });
 
-    it('overrides initial headers case insensitively', async () => {
+    it('overrides initial headers case insensitively', async (server, request) => {
       await request(server)
         .ws('/path/ws', ['show-test-headers'], {
           headers: {
@@ -130,7 +127,7 @@ describe('superwstest', () => {
         .close();
     });
 
-    it('unsets headers case insensitively', async () => {
+    it('unsets headers case insensitively', async (server, request) => {
       await request(server)
         .ws('/path/ws', ['show-test-headers'], {
           headers: {
@@ -145,7 +142,7 @@ describe('superwstest', () => {
         .close();
     });
 
-    it('unsets headers specified without protocols', async () => {
+    it('unsets headers specified without protocols', async (server, request) => {
       await request(server)
         .ws('/path/ws', { headers: { 'X-Special-Header': 'yes' } })
         .unset('X-Special-Header')
@@ -153,7 +150,7 @@ describe('superwstest', () => {
         .close();
     });
 
-    it('cannot be used once the connection is established', async () => {
+    it('cannot be used once the connection is established', async (server, request) => {
       const chain = request(server).ws('/path/ws').expectText('hello');
 
       expect(() => chain.set('a', 'b')).toThrow('WebSocket has already been established');
@@ -162,25 +159,25 @@ describe('superwstest', () => {
     });
   });
 
-  it('catches close events', async () => {
+  it('catches close events', async (server, request) => {
     await request(server).ws('/path/ws').sendText('trigger-server-close').expectClosed();
   });
 
-  it('checks close status codes', async () => {
+  it('checks close status codes', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .sendText('trigger-server-close')
       .expectClosed(4321, 'Oops');
   });
 
-  it('produces errors if the connection unexpectedly succeeds', async () => {
+  it('produces errors if the connection unexpectedly succeeds', async (server, request) => {
     await expect(
       () => request(server).ws('/anything').expectConnectionError(),
       throws('Expected connection failure, but succeeded'),
     );
   });
 
-  it('closes if the connection unexpectedly succeeds', async () => {
+  it('closes if the connection unexpectedly succeeds', async (server, request) => {
     await expect(() => request(server).ws('/anything').expectConnectionError(), throws());
 
     await delay(100); // wait for connection closure to reach server
@@ -189,7 +186,7 @@ describe('superwstest', () => {
     expect(connections).toEqual(0);
   });
 
-  it('does not allow expectConnectionError to be used after another expectation', async () => {
+  it('does not allow expectConnectionError to be used after another expectation', async (server, request) => {
     let chain = request(server).ws('/path/ws');
     expect(typeof chain.expectConnectionError).toEqual('function');
     chain = chain.expectText('hello');
@@ -197,14 +194,14 @@ describe('superwstest', () => {
     await chain.close();
   });
 
-  it('produces errors if an expectation is not met', async () => {
+  it('produces errors if an expectation is not met', async (server, request) => {
     await expect(
       () => request(server).ws('/path/ws').expectText('nope'),
       throws('Expected message "nope", got "hello"'),
     );
   });
 
-  it('stops execution of the chain if an expectation is not met', async () => {
+  it('stops execution of the chain if an expectation is not met', async (server, request) => {
     let runs = 0;
     await expect(
       () =>
@@ -223,7 +220,7 @@ describe('superwstest', () => {
     expect(runs).toEqual(1);
   });
 
-  it('closes if an expectation is not met', async () => {
+  it('closes if an expectation is not met', async (server, request) => {
     let ws;
     await expect(
       () =>
@@ -239,7 +236,7 @@ describe('superwstest', () => {
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
-  it('tests JSON data', async () => {
+  it('tests JSON data', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectText()
@@ -252,7 +249,7 @@ describe('superwstest', () => {
       .close();
   });
 
-  it('tests against functions', async () => {
+  it('tests against functions', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectText((actual) => actual.includes('he'))
@@ -267,7 +264,7 @@ describe('superwstest', () => {
     );
   });
 
-  it('tests against regular expressions', async () => {
+  it('tests against regular expressions', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectText(/^hello$/)
@@ -282,7 +279,7 @@ describe('superwstest', () => {
     );
   });
 
-  it('fails if JSON data does not match', async () => {
+  it('fails if JSON data does not match', async (server, request) => {
     await expect(
       () =>
         request(server)
@@ -294,7 +291,7 @@ describe('superwstest', () => {
     );
   });
 
-  it('closes if JSON data does not match', async () => {
+  it('closes if JSON data does not match', async (server, request) => {
     let ws;
     await expect(
       () =>
@@ -311,14 +308,14 @@ describe('superwstest', () => {
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
-  it('fails if data is not parsable as JSON', async () => {
+  it('fails if data is not parsable as JSON', async (server, request) => {
     await expect(
       () => request(server).ws('/path/ws').expectText().sendText('nope').expectJson({ foo: 'bar' }),
       throws('Unexpected token e'),
     );
   });
 
-  it('closes if data is not parsable as JSON', async () => {
+  it('closes if data is not parsable as JSON', async (server, request) => {
     let ws;
     await expect(
       () =>
@@ -335,7 +332,7 @@ describe('superwstest', () => {
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
-  it('produces errors if the connection closes while reading', async () => {
+  it('produces errors if the connection closes while reading', async (server, request) => {
     await expect(
       () =>
         request(server)
@@ -347,7 +344,7 @@ describe('superwstest', () => {
     );
   });
 
-  it('produces errors if the connection closes with an unexpected code', async () => {
+  it('produces errors if the connection closes with an unexpected code', async (server, request) => {
     await expect(
       () =>
         request(server)
@@ -359,7 +356,7 @@ describe('superwstest', () => {
     );
   });
 
-  it('produces errors if the connection closes with an unexpected message', async () => {
+  it('produces errors if the connection closes with an unexpected message', async (server, request) => {
     await expect(
       () =>
         request(server)
@@ -371,7 +368,7 @@ describe('superwstest', () => {
     );
   });
 
-  it('produces errors if the connection closes while sending', async () => {
+  it('produces errors if the connection closes while sending', async (server, request) => {
     await expect(
       () =>
         request(server)
@@ -384,7 +381,7 @@ describe('superwstest', () => {
     );
   });
 
-  it('sends arbitrary messages via send', async () => {
+  it('sends arbitrary messages via send', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectText('hello')
@@ -394,7 +391,7 @@ describe('superwstest', () => {
       .close();
   });
 
-  it('sends and checks binary messages', async () => {
+  it('sends and checks binary messages', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectText()
@@ -404,7 +401,7 @@ describe('superwstest', () => {
       .close();
   });
 
-  it('normalises binary data to Uint8Array', async () => {
+  it('normalises binary data to Uint8Array', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectText()
@@ -416,7 +413,7 @@ describe('superwstest', () => {
       .close();
   });
 
-  it('produces errors if a binary expectation is not met', async () => {
+  it('produces errors if a binary expectation is not met', async (server, request) => {
     await expect(
       () =>
         request(server)
@@ -428,14 +425,14 @@ describe('superwstest', () => {
     );
   });
 
-  it('produces errors if text is received when expecting binary', async () => {
+  it('produces errors if text is received when expecting binary', async (server, request) => {
     await expect(
       () => request(server).ws('/path/ws').expectText().sendText('x').expectBinary(),
       throws('Expected binary message, got text'),
     );
   });
 
-  it('executes arbitrary code via exec', async () => {
+  it('executes arbitrary code via exec', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectText('hello')
@@ -444,7 +441,7 @@ describe('superwstest', () => {
       .close();
   });
 
-  it('waits for promises returned by exec', async () => {
+  it('waits for promises returned by exec', async (server, request) => {
     let delayComplete = false;
     await request(server)
       .ws('/path/ws')
@@ -457,14 +454,14 @@ describe('superwstest', () => {
     expect(delayComplete).toEqual(true);
   });
 
-  it('checks the upgrade response', async () => {
+  it('checks the upgrade response', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectUpgrade((req) => req.statusCode === 101)
       .close();
   });
 
-  it('closes if exec throws', async () => {
+  it('closes if exec throws', async (server, request) => {
     let ws;
     await expect(
       () =>
@@ -482,21 +479,21 @@ describe('superwstest', () => {
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 
-  it('produces errors if reading after the connection has closed', async () => {
+  it('produces errors if reading after the connection has closed', async (server, request) => {
     await expect(
       () => request(server).ws('/path/ws').expectText('hello').close().expectText('nope'),
       throws('Expected message "nope", but connection closed: 1005 ""'),
     );
   });
 
-  it('produces errors if sending after the connection has closed', async () => {
+  it('produces errors if sending after the connection has closed', async (server, request) => {
     await expect(
       () => request(server).ws('/path/ws').expectText('hello').close().sendText('nope'),
       throws('Cannot send message; connection closed with 1005 ""'),
     );
   });
 
-  it('produces errors if the upgrade check fails', async () => {
+  it('produces errors if the upgrade check fails', async (server, request) => {
     await expect(
       () =>
         request(server)
@@ -506,14 +503,14 @@ describe('superwstest', () => {
     );
   });
 
-  it('allows expectUpgrade to return undefined', async () => {
+  it('allows expectUpgrade to return undefined', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectUpgrade((req) => expect(req.statusCode).toEqual(101))
       .close();
   });
 
-  it('allows multiple calls to expectUpgrade', async () => {
+  it('allows multiple calls to expectUpgrade', async (server, request) => {
     await request(server)
       .ws('/path/ws')
       .expectUpgrade((req) => req.statusCode === 101)
@@ -523,12 +520,10 @@ describe('superwstest', () => {
 });
 
 describe('superwstest IPv6', () => {
-  const server = makeEchoServer();
-  const request = baseRequest.scoped();
-  beforeEach(runServer(server, '::1'));
-  afterEach(noDangling(request));
+  withServer(makeEchoServer, '::1');
+  withScopedRequest({ checkDanglingConnections: true });
 
-  it('connects to IPv6 servers', async () => {
+  it('connects to IPv6 servers', async (server, request) => {
     await request(server).ws('/path/ws').expectText('hello').close(1001).expectClosed(1001);
   });
 });

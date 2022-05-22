@@ -1,22 +1,21 @@
 import makeErrorServer from './helpers/errorserver.mjs';
 import makeSubprotocolServer from './helpers/subprotocolserver.mjs';
-import runServer from './helpers/runServer.mjs';
-import baseRequest from '../src/superwstest.mjs';
+import withServer from './helpers/withServer.mjs';
+import withScopedRequest from './helpers/withScopedRequest.mjs';
 
 describe('superwstest-http-errors', () => {
-  const server = makeErrorServer();
-  const request = baseRequest.scoped();
-  beforeEach(runServer(server));
+  withServer(makeErrorServer);
+  withScopedRequest();
 
-  it('catches connection failures', async () => {
+  it('catches connection failures', async (server, request) => {
     await request(server).ws('/anything').expectConnectionError();
   });
 
-  it('checks the status code on connection failure', async () => {
+  it('checks the status code on connection failure', async (server, request) => {
     await request(server).ws('/anything').expectConnectionError(404);
   });
 
-  it('produces errors if the expected status code does not match', async () => {
+  it('produces errors if the expected status code does not match', async (server, request) => {
     await expect(
       () => request(server).ws('/anything').expectConnectionError(405),
       throws(
@@ -27,17 +26,16 @@ describe('superwstest-http-errors', () => {
 });
 
 describe('superwstest-protocol-errors', () => {
-  const server = makeSubprotocolServer();
-  const request = baseRequest.scoped();
-  beforeEach(runServer(server));
+  withServer(makeSubprotocolServer);
+  withScopedRequest();
 
-  it('checks the error message on connection failure', async () => {
+  it('checks the error message on connection failure', async (server, request) => {
     await request(server)
       .ws('/anything', 'unknown_subprotocol')
       .expectConnectionError('Server sent an invalid subprotocol');
   });
 
-  it('produces errors if the expected error message does not match', async () => {
+  it('produces errors if the expected error message does not match', async (server, request) => {
     await expect(
       () =>
         request(server)

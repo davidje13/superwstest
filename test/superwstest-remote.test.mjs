@@ -1,15 +1,12 @@
 import makeEchoServer from './helpers/echoserver.mjs';
-import runServer from './helpers/runServer.mjs';
-import noDangling from './helpers/noDangling.mjs';
-import baseRequest from '../src/superwstest.mjs';
+import withServer from './helpers/withServer.mjs';
+import withScopedRequest from './helpers/withScopedRequest.mjs';
 
 describe('superwstest-remote', () => {
-  const server = makeEchoServer();
-  const request = baseRequest.scoped();
-  beforeEach(runServer(server, '127.0.0.1'));
-  afterEach(noDangling(request));
+  withServer(makeEchoServer, '127.0.0.1');
+  withScopedRequest({ checkDanglingConnections: true });
 
-  it('communicates via websockets to the remote server', async () => {
+  it('communicates via websockets to the remote server', async (server, request) => {
     const serverAddress = `ws://127.0.0.1:${server.address().port}`;
     await request(serverAddress)
       .ws('/path/ws')
@@ -22,7 +19,7 @@ describe('superwstest-remote', () => {
       .expectClosed(1001);
   });
 
-  it('automatically converts protocol from http to ws', async () => {
+  it('automatically converts protocol from http to ws', async (server, request) => {
     const serverAddress = `http://127.0.0.1:${server.address().port}`;
     await request(serverAddress)
       .ws('/path/ws')
@@ -37,12 +34,10 @@ describe('superwstest-remote', () => {
 });
 
 describe('superwstest-remote IPv6', () => {
-  const server = makeEchoServer();
-  const request = baseRequest.scoped();
-  beforeEach(runServer(server, '::1'));
-  afterEach(noDangling(request));
+  withServer(makeEchoServer, '::1');
+  withScopedRequest({ checkDanglingConnections: true });
 
-  it('automatically converts protocol from http to ws', async () => {
+  it('automatically converts protocol from http to ws', async (server, request) => {
     const serverAddress = `http://[::1]:${server.address().port}`;
     await request(serverAddress).ws('/path/ws').expectText('hello').close(1001).expectClosed(1001);
   });
