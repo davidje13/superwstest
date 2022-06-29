@@ -335,7 +335,10 @@ function wsRequest(config, url, protocols, options) {
 
 function performShutdown(sockets, shutdownDelay) {
   if (shutdownDelay <= 0) {
-    [...sockets].forEach((s) => s.end());
+    [...sockets].forEach((s) => {
+      if(s.end) s.end() 
+      else if (s.close) s.close()
+    });
     return;
   }
 
@@ -347,7 +350,8 @@ function performShutdown(sockets, shutdownDelay) {
       await new Promise((r) => setTimeout(r, 20));
     }
     if (sockets.has(s)) {
-      s.end();
+      if(s.end) s.end() 
+      else if (s.close) s.close()
     }
   });
 }
