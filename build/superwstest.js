@@ -3,6 +3,7 @@
 var util = require('util');
 var WebSocket = require('ws');
 var https = require('https');
+var net = require('net');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
@@ -380,21 +381,23 @@ function wsRequest(config, url, protocols, options) {
   return wrapPromise(chain);
 }
 
-function performShutdown(sockets, shutdownDelay) {
-  if (shutdownDelay <= 0) {
-    [...sockets].forEach((s) => s.end());
-    return;
+async function performShutdown(sockets, shutdownDelay) {
+  const awaiting = [...sockets];
+
+  if (shutdownDelay > 0 && awaiting.length > 0) {
+    const expire = Date.now() + shutdownDelay;
+
+    while (Date.now() < expire && awaiting.some((s) => sockets.has(s))) {
+      /* eslint-disable-next-line no-await-in-loop */ // polling
+      await new Promise((r) => setTimeout(r, 0));
+    }
   }
 
-  const expire = Date.now() + shutdownDelay;
-
-  [...sockets].forEach(async (s) => {
-    while (Date.now() < expire && sockets.has(s)) {
-      /* eslint-disable-next-line no-await-in-loop */ // polling
-      await new Promise((r) => setTimeout(r, 20));
-    }
-    if (sockets.has(s)) {
+  [...sockets].forEach((s) => {
+    if (s instanceof net.Socket) {
       s.end();
+    } else if (s.close) {
+      s.close(); // WebSocketServer
     }
   });
 }
@@ -432,6 +435,26 @@ function registerShutdown(server, shutdownDelay) {
 
 const REGEXP_HTTP = /^http/;
 
+function getProtocol(server) {
+  if (!(server instanceof net.Server)) {
+    // could be WebSocketServer
+    server = (server.options || {}).server || server;
+  }
+  return server instanceof https__default["default"].Server ? 'https' : 'http';
+}
+
+function getHostname(address) {
+  if (typeof address === 'string') {
+    return address;
+  }
+  const { family } = address;
+  // check for Node 18.0-18.3 (numeric) and Node <18.0 / >=18.4 (string) APIs for address.family
+  if (family === 6 || family === 'IPv6') {
+    return `[${address.address}]`;
+  }
+  return address.address;
+}
+
 function getHttpBase(server) {
   if (typeof server === 'string') {
     return server;
@@ -449,20 +472,7 @@ function getHttpBase(server) {
     );
   }
 
-  const protocol = server instanceof https__default["default"].Server ? 'https' : 'http';
-  let hostname;
-  if (typeof address === 'object') {
-    const { family } = address;
-    // check for Node 18 (numeric) and Node <18 (string) APIs for address.family
-    if (family === 6 || family === 'IPv6') {
-      hostname = `[${address.address}]`;
-    } else {
-      hostname = address.address;
-    }
-  } else {
-    hostname = address;
-  }
-  return `${protocol}://${hostname}:${address.port}`;
+  return `${getProtocol(server)}://${getHostname(address)}:${address.port}`;
 }
 
 function makeScopedRequest() {

@@ -52,7 +52,7 @@ describe('superwstest', { parallel: true }, () => {
     await delay(50);
     expect(ws.readyState).toEqual(WebSocket.OPEN);
 
-    await delay(100);
+    await delay(200);
     expect(ws.readyState).toBeGreaterThan(1); // CLOSING or CLOSED
   });
 

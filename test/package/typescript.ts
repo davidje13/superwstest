@@ -1,4 +1,7 @@
 import request from 'superwstest';
+import { createServer as httpCreateServer } from 'http';
+import { createServer as httpsCreateServer } from 'https';
+import { WebSocketServer } from 'ws';
 
 // this file just checks types; the code is not executed
 
@@ -7,6 +10,10 @@ request('hello')
   .send('hi')
   .exec((ws) => ws.ping('blah'))
   .close();
+
+request(httpCreateServer()).ws('foo');
+request(httpsCreateServer()).ws('foo');
+request(new WebSocketServer({ port: 0 })).ws('foo');
 
 request.closeAll();
 
@@ -22,6 +29,9 @@ scopedRequest.closeAll();
 
 // @ts-expect-error
 request(1);
+
+// @ts-expect-error
+request(new WebSocket('x'));
 
 // @ts-expect-error
 scopedRequest(1);

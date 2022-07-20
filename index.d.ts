@@ -1,6 +1,7 @@
 declare module 'superwstest' {
-  import type { Server, ClientRequestArgs, IncomingMessage } from 'http';
-  import type { WebSocket, ClientOptions } from 'ws';
+  import type { Server } from 'net';
+  import type { ClientRequestArgs, IncomingMessage } from 'http';
+  import type { WebSocket, ClientOptions, WebSocketServer } from 'ws';
   import type { SuperTest, Test } from 'supertest';
 
   type JsonObject = { [member: string]: JsonValue };
@@ -92,7 +93,7 @@ declare module 'superwstest' {
   }
 
   interface SuperWSRequest {
-    (app: Server | string, options?: RequestOptions | undefined): SuperWSTest;
+    (app: Server | WebSocketServer | string, options?: RequestOptions | undefined): SuperWSTest;
     scoped(): SuperWSRequest;
     closeAll(): void;
   }
