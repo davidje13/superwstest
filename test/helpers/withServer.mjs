@@ -1,7 +1,7 @@
 export default function withServer(serverFactory, address = 'localhost') {
-  beforeEach(async ({ addTestParameter }) => {
+  return beforeEach(async ({ setParameter }) => {
     const server = await serverFactory();
-    addTestParameter(server);
+    setParameter(server);
     await new Promise((resolve, reject) => {
       server.listen(0, address, (err) => {
         if (err) {

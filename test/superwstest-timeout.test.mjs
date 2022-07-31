@@ -2,18 +2,25 @@ import makeEchoServer from './helpers/echoserver.mjs';
 import withServer from './helpers/withServer.mjs';
 import withScopedRequest from './helpers/withScopedRequest.mjs';
 
-describe('superwstest-timeout', { parallel: true }, () => {
-  withServer(makeEchoServer);
-  withScopedRequest({ checkDanglingConnections: true });
+const REQUEST = withScopedRequest({ checkDanglingConnections: true });
 
-  it('produces errors if a timeout occurs while reading', async (server, request) => {
+describe('superwstest-timeout', { parallel: true }, () => {
+  const SERVER = withServer(makeEchoServer);
+
+  it('produces errors if a timeout occurs while reading', async ({
+    [REQUEST]: request,
+    [SERVER]: server,
+  }) => {
     await expect(
       () => request(server).ws('/path/ws').expectText('hello').expectText('nope', { timeout: 100 }),
       throws('Expected message "nope", but got Error: Timeout after 100ms'),
     );
   });
 
-  it('uses top-level timeout if no timeout is given', async (server, request) => {
+  it('uses top-level timeout if no timeout is given', async ({
+    [REQUEST]: request,
+    [SERVER]: server,
+  }) => {
     await expect(
       () =>
         request(server, { defaultExpectOptions: { timeout: 50 } })
@@ -24,7 +31,10 @@ describe('superwstest-timeout', { parallel: true }, () => {
     );
   });
 
-  it('overrides top-level timeout if explicit timeout is given', async (server, request) => {
+  it('overrides top-level timeout if explicit timeout is given', async ({
+    [REQUEST]: request,
+    [SERVER]: server,
+  }) => {
     await expect(
       () =>
         request(server, { defaultExpectOptions: { timeout: 10000 } })
@@ -35,7 +45,10 @@ describe('superwstest-timeout', { parallel: true }, () => {
     );
   });
 
-  it('cancels timeout errors after a successful message', async (server, request) => {
+  it('cancels timeout errors after a successful message', async ({
+    [REQUEST]: request,
+    [SERVER]: server,
+  }) => {
     await request(server)
       .ws('/path/ws')
       .expectText('hello')

@@ -6,16 +6,16 @@ import withScopedRequest from './helpers/withScopedRequest.mjs';
 import withServer from './helpers/withServer.mjs';
 import { TEST_HTTPS_CONFIG } from './test-tls.mjs';
 
-withScopedRequest({ checkDanglingConnections: true });
+const REQUEST = withScopedRequest({ checkDanglingConnections: true });
 
 describe('node http server', () => {
-  withServer(() => {
+  const SERVER = withServer(() => {
     const server = http.createServer();
     new WebSocketServer({ server }).on('connection', echo);
     return server;
   });
 
-  it('connects', async (request, server) => {
+  it('connects', async ({ [REQUEST]: request, [SERVER]: server }) => {
     await request(server)
       .ws('/path/ws', [], { rejectUnauthorized: false })
       .expectText('hello')
@@ -25,13 +25,13 @@ describe('node http server', () => {
 });
 
 describe('node https server', () => {
-  withServer(() => {
+  const SERVER = withServer(() => {
     const server = https.createServer(TEST_HTTPS_CONFIG);
     new WebSocketServer({ server }).on('connection', echo);
     return server;
   });
 
-  it('connects', async (request, server) => {
+  it('connects', async ({ [REQUEST]: request, [SERVER]: server }) => {
     await request(server)
       .ws('/path/ws', [], { rejectUnauthorized: false })
       .expectText('hello')
@@ -41,21 +41,24 @@ describe('node https server', () => {
 });
 
 describe('WebSocketServer with internal server', () => {
-  beforeEach(async ({ addTestParameter }) => {
+  const SERVER = beforeEach(async ({ setParameter }) => {
     let wss;
     await new Promise((resolve) => {
       wss = new WebSocketServer({ port: 0 }, resolve);
       wss.on('connection', echo);
-      addTestParameter(wss);
+      setParameter(wss);
     });
     return () => new Promise((resolve) => wss.close(resolve));
   });
 
-  it('connects', async (request, server) => {
+  it('connects', async ({ [REQUEST]: request, [SERVER]: server }) => {
     await request(server).ws('/path/ws').expectText('hello').close(1001).expectClosed(1001);
   });
 
-  it('closes connections automatically on server shutdown', async (request, server) => {
+  it('closes connections automatically on server shutdown', async ({
+    [REQUEST]: request,
+    [SERVER]: server,
+  }) => {
     const ws = await request(server).ws('/path/ws').expectText('hello');
 
     expect(ws.readyState).toEqual(WebSocket.OPEN);
@@ -66,11 +69,11 @@ describe('WebSocketServer with internal server', () => {
 });
 
 describe('WebSocketServer with https server', () => {
-  beforeEach(async ({ addTestParameter }) => {
+  const SERVER = beforeEach(async ({ setParameter }) => {
     const server = https.createServer(TEST_HTTPS_CONFIG);
     const wss = new WebSocketServer({ server });
     wss.on('connection', echo);
-    addTestParameter(wss);
+    setParameter(wss);
     await new Promise((resolve, reject) => {
       server.listen(0, 'localhost', (err) => {
         if (err) {
@@ -83,7 +86,7 @@ describe('WebSocketServer with https server', () => {
     return () => new Promise((resolve) => wss.close(resolve));
   });
 
-  it('connects', async (request, server) => {
+  it('connects', async ({ [REQUEST]: request, [SERVER]: server }) => {
     await request(server)
       .ws('/path/ws', [], { rejectUnauthorized: false })
       .expectText('hello')

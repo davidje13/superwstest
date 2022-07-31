@@ -1,9 +1,9 @@
 import baseRequest from '../../src/superwstest.mjs';
 
 export default function withScopedRequest({ checkDanglingConnections = false } = {}) {
-  beforeEach(async ({ addTestParameter }) => {
+  return beforeEach(async ({ setParameter }) => {
     const request = baseRequest.scoped();
-    addTestParameter(request);
+    setParameter(request);
     return () => {
       const danglingConnections = request.closeAll();
       if (checkDanglingConnections && danglingConnections > 0) {
