@@ -6,7 +6,7 @@ echo;
 
 BASE_DIR="$(cd "$(dirname "$0")/.."; pwd)";
 cd "$BASE_DIR";
-rm /superwstest-*.tgz 2>/dev/null || true;
+rm superwstest-*.tgz 2>/dev/null || true;
 npm pack;
 rm test/package/superwstest.tgz 2>/dev/null || true;
 mv superwstest-*.tgz test/package/superwstest.tgz;
