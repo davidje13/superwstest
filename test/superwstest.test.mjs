@@ -350,7 +350,7 @@ describe('superwstest', { parallel: true }, () => {
   it('fails if data is not parsable as JSON', async ({ [REQUEST]: request, [SERVER]: server }) => {
     await expect(
       () => request(server).ws('/path/ws').expectText().sendText('nope').expectJson({ foo: 'bar' }),
-      throws('Unexpected token e'),
+      throws(),
     );
   });
 

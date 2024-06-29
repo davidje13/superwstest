@@ -6,7 +6,7 @@
   },
   "devDependencies": {
     "superwstest": "file:superwstest.tgz",
-    "supertest": "6.x",
-    "typescript": "4.5.x"
+    "supertest": "7.x",
+    "typescript": "5.5.x"
   }
 }

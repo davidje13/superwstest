@@ -5,12 +5,6 @@ var WebSocket = require('ws');
 var https = require('https');
 var net = require('net');
 
-function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
-
-var util__default = /*#__PURE__*/_interopDefaultLegacy(util);
-var WebSocket__default = /*#__PURE__*/_interopDefaultLegacy(WebSocket);
-var https__default = /*#__PURE__*/_interopDefaultLegacy(https);
-
 function remove(list, item) {
   const p = list.indexOf(item);
   if (p !== -1) {
@@ -171,7 +165,7 @@ const wsMethods = {
       if (result === false) {
         throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
       }
-    } else if (!util__default["default"].isDeepStrictEqual(received, check)) {
+    } else if (!util.isDeepStrictEqual(received, check)) {
       throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
     }
   },
@@ -240,7 +234,7 @@ function checkConnectionError(error, expectedCode) {
 }
 
 function isOpen(ws) {
-  return ws.readyState === WebSocket__default["default"].CONNECTING || ws.readyState === WebSocket__default["default"].OPEN;
+  return ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN;
 }
 
 function closeAndRethrow(ws) {
@@ -271,7 +265,7 @@ function wsRequest(config, url, protocols, options) {
   const opts = { ...options, headers: { ...(options || {}).headers } };
 
   const initPromise = (resolve, reject) => {
-    const ws = new WebSocket__default["default"](url, protocols, opts);
+    const ws = new WebSocket(url, protocols, opts);
     config.clientSockets.add(ws);
     const originalClose = ws.close.bind(ws);
     ws.close = (...args) => {
@@ -440,7 +434,7 @@ function getProtocol(server) {
     // could be WebSocketServer
     server = (server.options || {}).server || server;
   }
-  return server instanceof https__default["default"].Server ? 'https' : 'http';
+  return server instanceof https.Server ? 'https' : 'http';
 }
 
 function getHostname(address) {

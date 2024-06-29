@@ -13,7 +13,7 @@
   "types": "index.d.ts",
   "scripts": {
     "format": "prettier --write .",
-    "test": "lean-test test --parallel-suites && rollup --config rollup.config.js && test/run-package.sh && prettier --check ."
+    "test": "lean-test test --parallel-suites && rollup --config rollup.config.mjs && test/run-package.sh && prettier --check ."
   },
   "repository": {
     "type": "git",
@@ -49,7 +49,7 @@
   },
   "devDependencies": {
     "lean-test": "2.x",
-    "prettier": "2.6.2",
-    "rollup": "2.x"
+    "prettier": "3.3.2",
+    "rollup": "4.x"
   }
 }
