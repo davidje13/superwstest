@@ -35,7 +35,7 @@
   },
   "homepage": "https://github.com/davidje13/superwstest#readme",
   "dependencies": {
-    "@types/supertest": "<7",
+    "@types/supertest": "*",
     "@types/ws": "7.x || 8.x",
     "ws": "7.x || 8.x"
   },
