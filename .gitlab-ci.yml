@@ -1,19 +1,14 @@
-node:14:
-  image: node:14
-  script:
-    - npm install && npm test --ignore-scripts=false
-
-node:16:
-  image: node:16
-  script:
-    - npm install-test
-
-node:17:
-  image: node:17
-  script:
-    - npm install-test
-
 node:18:
   image: node:18
+  script:
+    - npm install-test
+
+node:20:
+  image: node:20
+  script:
+    - npm install-test
+
+node:22:
+  image: node:22
   script:
     - npm install-test
