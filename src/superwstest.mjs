@@ -116,16 +116,33 @@ const wsMethods = {
         );
       }),
     ]).then(conversion);
-    if (check === undefined) {
-      return;
-    }
-    if (typeof check === 'function') {
-      const result = check(received);
-      if (result === false) {
+
+    try {
+      if (check === undefined) {
+        return;
+      }
+      if (typeof check === 'function') {
+        const result = check(received);
+        if (result === false) {
+          throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
+        }
+      } else if (!util.isDeepStrictEqual(received, check)) {
         throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
       }
-    } else if (!util.isDeepStrictEqual(received, check)) {
-      throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
+    } catch (e) {
+      opts.startTime ??= Date.now();
+
+      if (opts.eventually) {
+        opts.timeout ??= 1000;
+
+        if (Date.now() - opts.startTime > opts.timeout) {
+          throw e;
+        }
+
+        return wsMethods.expectMessage(ws, conversion, check, opts);
+      }
+
+      throw e;
     }
   },
   expectText: (ws, expected, options) => {
