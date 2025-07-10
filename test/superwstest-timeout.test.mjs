@@ -17,7 +17,19 @@ describe('superwstest-timeout', { parallel: true }, () => {
     );
   });
 
-  it('uses top-level timeout if no timeout is given', async ({
+  it('produces errors if a timeout occurs while waiting', async ({
+    [REQUEST]: request,
+    [SERVER]: server,
+  }) => {
+    await expect(
+      () => request(server).ws('/path/ws').waitForText('nope', { timeout: 100 }),
+      throws(
+        'Received 1 message while waiting for "nope", but none matched:\n"hello"\nError: Timeout after ',
+      ),
+    );
+  });
+
+  it('uses top-level expect timeout if no timeout is given', async ({
     [REQUEST]: request,
     [SERVER]: server,
   }) => {
@@ -28,6 +40,21 @@ describe('superwstest-timeout', { parallel: true }, () => {
           .expectText('hello')
           .expectText('nope'),
       throws('Expected message "nope", but got Error: Timeout after 50ms'),
+    );
+  });
+
+  it('uses top-level wait for timeout if no timeout is given', async ({
+    [REQUEST]: request,
+    [SERVER]: server,
+  }) => {
+    await expect(
+      () =>
+        request(server, { defaultWaitForOptions: { timeout: 50 } })
+          .ws('/path/ws')
+          .waitForText('nope'),
+      throws(
+        'Received 1 message while waiting for "nope", but none matched:\n"hello"\nError: Timeout after ',
+      ),
     );
   });
 

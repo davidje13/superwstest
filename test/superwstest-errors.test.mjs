@@ -26,7 +26,7 @@ describe('superwstest-http-errors', () => {
     await expect(
       () => request(server).ws('/anything').expectConnectionError(405),
       throws(
-        'Expected connection failure with message "Unexpected server response: 405", got "Unexpected server response: 404"',
+        'Expected connection failure with message "Unexpected server response: 405", but got "Unexpected server response: 404"',
       ),
     );
   });
@@ -54,7 +54,7 @@ describe('superwstest-protocol-errors', () => {
           .ws('/anything', 'unknown_subprotocol')
           .expectConnectionError('unknown error message'),
       throws(
-        'Expected connection failure with message "unknown error message", got "Server sent an invalid subprotocol"',
+        'Expected connection failure with message "unknown error message", but got "Server sent an invalid subprotocol"',
       ),
     );
   });

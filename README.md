@@ -151,6 +151,9 @@ describe('thing', () => {
   - [.expectText([expected[, options]])](#expecttextexpected-options)
   - [.expectJson([expected[, options]])](#expectjsonexpected-options)
   - [.expectBinary([expected[, options]])](#expectbinaryexpected-options)
+  - [.waitForText([expected[, options]])](#waitfortextexpected-options)
+  - [.waitForJson([expected[, options]])](#waitforjsonexpected-options)
+  - [.waitForBinary([expected[, options]])](#waitforbinaryexpected-options)
   - [.sendText(text)](#sendtexttext)
   - [.sendJson(json)](#sendjsonjson)
   - [.sendBinary(data)](#sendbinarydata)
@@ -190,6 +193,10 @@ Typically this is immediately followed by `.ws(...)` or `.get(...)` etc.
     .expectText('hello') // implicit { timeout: 5000 }
     .expectText('hi', { timeout: 9000 }) // overrides default
   ```
+
+- `defaultWaitForOptions`: a set of options which are passed to all
+  `waitFor*` calls in the current chain (e.g. allows setting a timeout
+  for all waits in the chain)
 
 ### `request(server).ws(path[, protocols][, options])`
 
@@ -441,6 +448,125 @@ A second parameter can be given with additional options:
   the default (infinite) timeout. This option is provided as an escape
   hatch when writing long flow tests where the test timeout is
   unreasonably large for detecting an early failure.
+
+These options can also be configured for the whole chain in the
+[request call](#requestserver-options).
+
+### `.waitForText([expected[, options]])`
+
+Waits for the next message which matches the given text (exact match),
+regular expression, or function; discarding all non-matching messages.
+If no parameter is given, this only waits for a text message (not
+binary).
+
+```javascript
+request(server).ws('...')
+  .waitForText('100%')   // exact text
+  .waitForText(/^done$/) // RegExp matching
+  .waitForText((actual) => actual.includes('complete')) // function
+  .waitForText()          // just wait for text
+```
+
+For details on using a function matcher, see
+[`expectText`](#expecttextexpected-options).
+
+This method is intended for situations where you need to skip past
+"progress" messages (e.g. a file upload reporting the upload
+percentage). If you just need to check a single message, use
+[`expectText`](#expecttextexpected-options) instead. If you need to
+ignore irrelevant messages, use [`filterText`](#filtertexttest)
+instead.
+
+A second parameter can be given with additional options:
+
+- `timeout`: wait up to the given number of milliseconds before failing
+  the test (defaults to infinity).
+
+  ```javascript
+  request(server).ws('...')
+    .waitForText('hello', { timeout: 1000 })
+    .waitForText(undefined, { timeout: 1000 })
+  ```
+
+These options can also be configured for the whole chain in the
+[request call](#requestserver-options).
+
+### `.waitForJson([expected[, options]])`
+
+Waits for the next message which can be deserialised using `JSON.parse`
+and matches the given data
+([deep equality](https://nodejs.org/api/util.html#utilisdeepstrictequalval1-val2))
+or function; discarding all non-matching messages. If no parameter is
+given, this only waits for a message which is valid JSON.
+
+```javascript
+request(server).ws('...')
+  .waitForJson({ done: true }) // exact text
+  .waitForJson((actual) => actual.done) // function
+  .waitForJson() // just wait for valid JSON
+```
+
+For details on using a function matcher, see
+[`expectJson`](#expectjsonexpected-options).
+
+This method is intended for situations where you need to skip past
+"progress" messages (e.g. a file upload reporting the upload
+percentage). If you just need to check a single message, use
+[`expectJson`](#expectjsonexpected-options) instead. If you need to
+ignore irrelevant messages, use [`filterJson`](#filterjsontest)
+instead.
+
+A second parameter can be given with additional options:
+
+- `timeout`: wait up to the given number of milliseconds before failing
+  the test (defaults to infinity).
+
+  ```javascript
+  request(server).ws('...')
+    .waitForJson({ done: true }, { timeout: 1000 })
+    .waitForJson(undefined, { timeout: 1000 })
+  ```
+
+These options can also be configured for the whole chain in the
+[request call](#requestserver-options).
+
+### `.waitForBinary([expected[, options]])`
+
+Waits for the next message which matches the given array / buffer
+(exact match) or function; discarding all non-matching messages.
+If no parameter is given, this only waits for a binary message (not
+text).
+
+When providing a function, the data will always be a `Uint8Array`.
+
+```javascript
+request(server).ws('...')
+  .waitForBinary([100])
+  .waitForBinary(new Uint8Array([100]))
+  .waitForBinary((actual) => (actual[0] === 100)) // function
+  .waitForBinary() // just wait for binary
+```
+
+For details on using a function matcher, see
+[`expectBinary`](#expectbinaryexpected-options).
+
+This method is intended for situations where you need to skip past
+"progress" messages (e.g. a file upload reporting the upload
+percentage). If you just need to check a single message, use
+[`expectBinary`](#expectbinaryexpected-options) instead. If you need
+to ignore irrelevant messages, use
+[`filterBinary`](#filterbinarytest) instead.
+
+A second parameter can be given with additional options:
+
+- `timeout`: wait up to the given number of milliseconds before failing
+  the test (defaults to infinity).
+
+  ```javascript
+  request(server).ws('...')
+    .waitForBinary([100], { timeout: 1000 })
+    .waitForBinary(undefined, { timeout: 1000 })
+  ```
 
 These options can also be configured for the whole chain in the
 [request call](#requestserver-options).

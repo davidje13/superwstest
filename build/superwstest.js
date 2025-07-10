@@ -1,9 +1,9 @@
 'use strict';
 
-var util = require('util');
+var node_util = require('node:util');
+var node_https = require('node:https');
+var node_net = require('node:net');
 var WebSocket = require('ws');
-var https = require('https');
-var net = require('net');
 
 function remove(list, item) {
   const p = list.indexOf(item);
@@ -91,7 +91,7 @@ function stringifyBinary(v) {
 
 function msgText({ data, isBinary }) {
   if (isBinary) {
-    throw new Error('Expected text message, got binary');
+    throw new Error('Expected text message, but got binary');
   }
   return String(data);
 }
@@ -102,7 +102,7 @@ function msgJson(msg) {
 
 function msgBinary({ data, isBinary }) {
   if (!isBinary) {
-    throw new Error('Expected binary message, got text');
+    throw new Error('Expected binary message, but got text');
   }
   return normaliseBinary(data);
 }
@@ -135,6 +135,44 @@ function stringify(v) {
   return JSON.stringify(v);
 }
 
+function makeTextCheck(expected) {
+  if (expected instanceof RegExp) {
+    const check = (value) => expected.test(value);
+    check.expectedMessage = `matching ${expected}`;
+    return check;
+  } else {
+    return expected;
+  }
+}
+
+function makeBinaryCheck(expected) {
+  if (typeof expected === 'function') {
+    return expected;
+  } else if (expected) {
+    const norm = normaliseBinary(expected);
+    const check = (value) => compareBinary(value, norm);
+    check.expectedMessage = stringify(norm);
+    return check;
+  }
+}
+
+function checkMessage(check, received) {
+  if (typeof check === 'function') {
+    return check(received) !== false;
+  } else {
+    return node_util.isDeepStrictEqual(received, check);
+  }
+}
+
+function getNextMessage(ws, timeout) {
+  return Promise.race([
+    ws.messages.pop(timeout),
+    ws.closed.then(({ code, data }) => {
+      throw new Error(`connection closed: ${code} "${data}"`);
+    }),
+  ]);
+}
+
 const wsMethods = {
   send: (ws, msg, options) => sendWithError(ws, msg, options),
   sendText: (ws, msg) => sendWithError(ws, String(msg)),
@@ -143,70 +181,78 @@ const wsMethods = {
     sendWithError(ws, normaliseBinary(msg), {
       binary: true,
     }),
-  wait: (ws, ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+
   exec: async (ws, fn) => fn(ws),
+
   expectMessage: async (ws, conversion, check = undefined, options = undefined) => {
     const opts = { ...ws.defaultExpectOptions, ...options };
-    const received = await Promise.race([
-      ws.messages.pop(opts.timeout).catch((e) => {
-        throw new Error(`Expected message ${stringify(check)}, but got ${e}`);
-      }),
-      ws.closed.then(({ code, data }) => {
-        throw new Error(
-          `Expected message ${stringify(check)}, but connection closed: ${code} "${data}"`,
-        );
-      }),
-    ]).then(conversion);
-    if (check === undefined) {
-      return;
-    }
-    if (typeof check === 'function') {
-      const result = check(received);
-      if (result === false) {
-        throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
-      }
-    } else if (!util.isDeepStrictEqual(received, check)) {
-      throw new Error(`Expected message ${stringify(check)}, got ${stringify(received)}`);
+    const received = await getNextMessage(ws, opts.timeout).then(conversion, (err) => {
+      throw new Error(`Expected message ${stringify(check)}, but got ${err}`);
+    });
+    if (check !== undefined && !checkMessage(check, received)) {
+      throw new Error(`Expected message ${stringify(check)}, but got ${stringify(received)}`);
     }
   },
-  expectText: (ws, expected, options) => {
-    let check;
-    if (expected instanceof RegExp) {
-      check = (value) => expected.test(value);
-      check.expectedMessage = `matching ${expected}`;
-    } else {
-      check = expected;
-    }
-    return wsMethods.expectMessage(ws, msgText, check, options);
-  },
+  expectText: (ws, expected, options) =>
+    wsMethods.expectMessage(ws, msgText, makeTextCheck(expected), options),
   expectJson: (ws, check, options) => wsMethods.expectMessage(ws, msgJson, check, options),
-  expectBinary: (ws, expected, options) => {
-    let check;
-    if (typeof expected === 'function') {
-      check = expected;
-    } else if (expected) {
-      const norm = normaliseBinary(expected);
-      check = (value) => compareBinary(value, norm);
-      check.expectedMessage = stringify(norm);
+  expectBinary: (ws, expected, options) =>
+    wsMethods.expectMessage(ws, msgBinary, makeBinaryCheck(expected), options),
+
+  wait: (ws, ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  waitForMessage: async (ws, conversion, check = undefined, options = undefined) => {
+    const opts = { ...ws.defaultWaitForOptions, ...options };
+    const hasTimeout = opts.timeout !== undefined;
+    const deadline = Date.now() + opts.timeout;
+    const failures = [];
+    while (true) {
+      const timeout = hasTimeout ? deadline - Date.now() : undefined;
+      const message = await getNextMessage(ws, timeout).catch((err) => {
+        if (failures.length === 0) {
+          return err;
+        }
+        throw new Error(
+          `Received ${failures.length} message${failures.length === 1 ? '' : 's'} while waiting for ${stringify(check)}, but none matched:\n${failures.join('\n')}\n${err}`,
+        );
+      });
+      try {
+        const received = await conversion(message);
+        if (check === undefined || checkMessage(check, received)) {
+          return;
+        }
+        failures.push(stringify(received));
+      } catch {
+        if (message.isBinary) {
+          failures.push(stringify(new Uint8Array(message.data)));
+        } else {
+          failures.push(stringify(String(message.data)));
+        }
+      }
     }
-    return wsMethods.expectMessage(ws, msgBinary, check, options);
   },
+  waitForText: (ws, expected, options) =>
+    wsMethods.waitForMessage(ws, msgText, makeTextCheck(expected), options),
+  waitForJson: (ws, check, options) => wsMethods.waitForMessage(ws, msgJson, check, options),
+  waitForBinary: (ws, expected, options) =>
+    wsMethods.waitForMessage(ws, msgBinary, makeBinaryCheck(expected), options),
+
   close: (ws, code, message) => ws.close(code, message),
   expectClosed: async (ws, expectedCode = null, expectedMessage = null) => {
     const { code, data } = await ws.closed;
     if (expectedCode !== null && code !== expectedCode) {
-      throw new Error(`Expected close code ${expectedCode}, got ${code} "${data}"`);
+      throw new Error(`Expected close code ${expectedCode}, but got ${code} "${data}"`);
     }
     if (expectedMessage !== null && String(data) !== expectedMessage) {
-      throw new Error(`Expected close message "${expectedMessage}", got ${code} "${data}"`);
+      throw new Error(`Expected close message "${expectedMessage}", but got ${code} "${data}"`);
     }
   },
+
   expectUpgrade: async (ws, check) => {
     const request = await ws.upgrade;
     const result = check(request);
     if (result === false) {
       throw new Error(
-        `Expected Upgrade matching assertion, got: status ${
+        `Expected Upgrade matching assertion, but got: status ${
           request.statusCode
         } headers ${JSON.stringify(request.headers)}`,
       );
@@ -229,7 +275,7 @@ function checkConnectionError(error, expectedCode) {
   }
   const actual = error.message;
   if (actual !== expected) {
-    throw new Error(`Expected connection failure with message "${expected}", got "${actual}"`);
+    throw new Error(`Expected connection failure with message "${expected}", but got "${actual}"`);
   }
 }
 
@@ -420,7 +466,7 @@ async function performShutdown(sockets, shutdownDelay) {
   }
 
   [...sockets].forEach((s) => {
-    if (s instanceof net.Socket) {
+    if (s instanceof node_net.Socket) {
       s.end();
     } else if (s.close) {
       s.close(); // WebSocketServer
@@ -462,20 +508,18 @@ function registerShutdown(server, shutdownDelay) {
 const REGEXP_HTTP = /^http/;
 
 function getProtocol(server) {
-  if (!(server instanceof net.Server)) {
+  if (!(server instanceof node_net.Server)) {
     // could be WebSocketServer
     server = (server.options || {}).server || server;
   }
-  return server instanceof https.Server ? 'https' : 'http';
+  return server instanceof node_https.Server ? 'https' : 'http';
 }
 
 function getHostname(address) {
   if (typeof address === 'string') {
     return address;
   }
-  const { family } = address;
-  // check for Node 18.0-18.3 (numeric) and Node <18.0 / >=18.4 (string) APIs for address.family
-  if (family === 6 || family === 'IPv6') {
+  if (address.family === 'IPv6') {
     return `[${address.address}]`;
   }
   return address.address;
@@ -504,14 +548,17 @@ function getHttpBase(server) {
 function makeScopedRequest() {
   const clientSockets = new Set();
 
-  const request = (server, { shutdownDelay = 0, defaultExpectOptions = {} } = {}) => {
+  const request = (
+    server,
+    { shutdownDelay = 0, defaultExpectOptions = {}, defaultWaitForOptions = {} } = {},
+  ) => {
     const httpBase = getHttpBase(server);
 
     if (typeof server !== 'string') {
       registerShutdown(server, shutdownDelay);
     }
 
-    const wsConfig = { defaultExpectOptions, clientSockets };
+    const wsConfig = { defaultExpectOptions, defaultWaitForOptions, clientSockets };
     const obj = stRequest(httpBase);
     obj.ws = (path, ...args) =>
       wsRequest(wsConfig, httpBase.replace(REGEXP_HTTP, 'ws') + path, ...args);

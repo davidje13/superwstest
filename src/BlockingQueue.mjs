@@ -5,7 +5,7 @@ function remove(list, item) {
   }
 }
 
-export default class BlockingQueue {
+export class BlockingQueue {
   constructor() {
     this.pendingPush = [];
     this.pendingPop = [];

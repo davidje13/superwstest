@@ -17,9 +17,14 @@ declare module 'superwstest' {
     timeout?: number | undefined;
   }
 
+  export interface WaitForMessageOptions {
+    timeout?: number | undefined;
+  }
+
   export interface RequestOptions {
     shutdownDelay?: number | undefined;
     defaultExpectOptions?: ExpectMessageOptions | undefined;
+    defaultWaitForOptions?: WaitForMessageOptions | undefined;
   }
 
   export interface WSChain extends Promise<WebSocket> {
@@ -75,6 +80,33 @@ declare module 'superwstest' {
         | ((message: Uint8Array) => boolean | void)
         | undefined,
       options?: ExpectMessageOptions | undefined,
+    ): this;
+
+    waitForMessage<T>(
+      conversion: (received: ReceivedMessage) => T,
+      expected?: T | ((message: T) => boolean | void) | null | undefined,
+      options?: WaitForMessageOptions | undefined,
+    ): this;
+
+    waitForText(
+      expected?: string | RegExp | ((message: string) => boolean | void) | undefined,
+      options?: WaitForMessageOptions | undefined,
+    ): this;
+
+    waitForJson(
+      expected?: JsonValue | ((message: any) => boolean | void) | undefined,
+      options?: WaitForMessageOptions | undefined,
+    ): this;
+
+    waitForBinary(
+      expected?:
+        | Uint8Array
+        | Buffer
+        | ArrayBuffer
+        | number[]
+        | ((message: Uint8Array) => boolean | void)
+        | undefined,
+      options?: WaitForMessageOptions | undefined,
     ): this;
 
     close(code?: number | undefined, reason?: string | undefined): this;

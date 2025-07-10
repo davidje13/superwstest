@@ -233,7 +233,7 @@ describe('superwstest', { parallel: true }, () => {
   }) => {
     await expect(
       () => request(server).ws('/path/ws').expectText('nope'),
-      throws('Expected message "nope", got "hello"'),
+      throws('Expected message "nope", but got "hello"'),
     );
   });
 
@@ -382,7 +382,7 @@ describe('superwstest', { parallel: true }, () => {
           .expectText('hello')
           .sendText('trigger-server-close')
           .expectText('nope'),
-      throws('Expected message "nope", but connection closed: 4321 "Oops"'),
+      throws('Expected message "nope", but got Error: connection closed: 4321 "Oops"'),
     );
   });
 
@@ -397,7 +397,7 @@ describe('superwstest', { parallel: true }, () => {
           .expectText('hello')
           .sendText('trigger-server-close')
           .expectClosed(4444),
-      throws('Expected close code 4444, got 4321 "Oops"'),
+      throws('Expected close code 4444, but got 4321 "Oops"'),
     );
   });
 
@@ -412,7 +412,7 @@ describe('superwstest', { parallel: true }, () => {
           .expectText('hello')
           .sendText('trigger-server-close')
           .expectClosed(4321, 'Nope'),
-      throws('Expected close message "Nope", got 4321 "Oops"'),
+      throws('Expected close message "Nope", but got 4321 "Oops"'),
     );
   });
 
@@ -475,7 +475,7 @@ describe('superwstest', { parallel: true }, () => {
           .expectText()
           .sendBinary(new Uint8Array([0, 10]))
           .expectBinary(new Uint8Array([111, 0])),
-      throws('Expected message [6f 00], got [6f 00 0a]'),
+      throws('Expected message [6f 00], but got [6f 00 0a]'),
     );
   });
 
@@ -485,7 +485,7 @@ describe('superwstest', { parallel: true }, () => {
   }) => {
     await expect(
       () => request(server).ws('/path/ws').expectText().sendText('x').expectBinary(),
-      throws('Expected binary message, got text'),
+      throws('Expected binary message, but got text'),
     );
   });
 
@@ -542,7 +542,7 @@ describe('superwstest', { parallel: true }, () => {
   }) => {
     await expect(
       () => request(server).ws('/path/ws').expectText('hello').close().expectText('nope'),
-      throws('Expected message "nope", but connection closed: 1005 ""'),
+      throws('Expected message "nope", but got Error: connection closed: 1005 ""'),
     );
   });
 
@@ -647,6 +647,63 @@ describe('superwstest', { parallel: true }, () => {
             .expectText('echo nope')
             .close(),
         throws(),
+      );
+    });
+  });
+
+  describe('waitFor', () => {
+    it('ignores messages until a matching text message is received', async ({
+      [REQUEST]: request,
+      [SERVER]: server,
+    }) => {
+      await request(server)
+        .ws('/path/ws')
+        .sendBinary([1])
+        .sendText('50%')
+        .sendText('100%')
+        .waitForText('echo 100%')
+        .close();
+    });
+
+    it('ignores messages until a matching json message is received', async ({
+      [REQUEST]: request,
+      [SERVER]: server,
+    }) => {
+      await request(server)
+        .ws('/path/ws')
+        .sendBinary([1])
+        .sendText('50%')
+        .sendJson({ progress: 75 })
+        .sendJson({ progress: 100 })
+        .waitForJson({ progress: 100 })
+        .close();
+    });
+
+    it('ignores messages until a matching binary message is received', async ({
+      [REQUEST]: request,
+      [SERVER]: server,
+    }) => {
+      await request(server)
+        .ws('/path/ws')
+        .sendBinary([1])
+        .sendText('50%')
+        .sendBinary([100])
+        .waitForBinary([111, 100])
+        .close();
+    });
+
+    it('fails if the connection closes', async ({ [REQUEST]: request, [SERVER]: server }) => {
+      await expect(
+        () =>
+          request(server)
+            .ws('/path/ws')
+            .sendText('50%')
+            .sendText('trigger-server-close')
+            .waitForText('echo 100%')
+            .close(),
+        throws(
+          'Received 2 messages while waiting for "echo 100%", but none matched:\n"hello"\n"echo 50%"\nError: connection closed: 4321 "Oops"',
+        ),
       );
     });
   });

@@ -1,7 +1,7 @@
 export default [
   {
     input: 'src/superwstest.mjs',
-    external: ['util', 'supertest', 'ws', 'https', 'net'],
+    external: [/^node:/, 'supertest', 'ws'],
     output: {
       file: 'build/superwstest.js',
       format: 'cjs',
