@@ -144,6 +144,10 @@ describe('thing', () => {
 - [request(...).ws(path[, protocols][, options])](#requestserverwspath-protocols-options)
   - [.set(header, value)](#setheader-value)
   - [.unset(header)](#unsetheader)
+  - [.filterMessages(test)](#filtertest)
+  - [.filterText([test])](#filtertexttest)
+  - [.filterJson([test])](#filterjsontest)
+  - [.filterBinary([test])](#filterbinarytest)
   - [.expectText([expected[, options]])](#expecttextexpected-options)
   - [.expectJson([expected[, options]])](#expectjsonexpected-options)
   - [.expectBinary([expected[, options]])](#expectbinaryexpected-options)
@@ -226,6 +230,79 @@ Removes the header from the initial WebSocket connection.
 request(server).ws('...')
   .unset('Cookie')
 ```
+
+This function cannot be called after the connection has been established
+(i.e. after calling `send` or `expect*`).
+
+### `.filterMessages(test)`
+
+Filters out any incoming messages which do not match the `test` function.
+This can be used to ignore background messages which are not relevant to
+the code being tested.
+
+```javascript
+request(server).ws('...')
+  .filterMessages(({ data, isBinary }) => {
+    if (isBinary) {
+      return true; // allow all binary messages
+    } else {
+      return String(data) !== 'ping'; // allow all text messages except "ping"
+    }
+  })
+```
+
+The `data` passed to the `test` function will always be a NodeJS `Buffer`.
+If multiple filters are specified, they are AND-ed together.
+
+This function cannot be called after the connection has been established
+(i.e. after calling `send` or `expect*`).
+
+### `.filterText([test])`
+
+Filters out any incoming messages which do not match the `test` function.
+This can be used to ignore background messages which are not relevant to
+the code being tested. Implicitly excludes all binary messages.
+
+```javascript
+request(server).ws('...')
+  .filterText((message) => message !== 'ping')
+```
+
+If multiple filters are specified, they are AND-ed together.
+
+This function cannot be called after the connection has been established
+(i.e. after calling `send` or `expect*`).
+
+### `.filterJson([test])`
+
+Filters out any incoming messages which do not match the `test` function.
+This can be used to ignore background messages which are not relevant to
+the code being tested. Implicitly excludes all binary messages and text
+messages which cannot be parsed as JSON.
+
+```javascript
+request(server).ws('...')
+  .filterJson((message) => message.type !== 'system')
+```
+
+If multiple filters are specified, they are AND-ed together.
+
+This function cannot be called after the connection has been established
+(i.e. after calling `send` or `expect*`).
+
+### `.filterBinary([test])`
+
+Filters out any incoming messages which do not match the `test` function.
+This can be used to ignore background messages which are not relevant to
+the code being tested. Implicitly excludes all text messages.
+
+```javascript
+request(server).ws('...')
+  .filterBinary((message) => message[0] === 1)
+```
+
+The `message` parameter will always be a `Uint8Array`.
+If multiple filters are specified, they are AND-ed together.
 
 This function cannot be called after the connection has been established
 (i.e. after calling `send` or `expect*`).

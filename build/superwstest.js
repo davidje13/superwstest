@@ -263,6 +263,7 @@ function wsRequest(config, url, protocols, options) {
     /* eslint-enable no-param-reassign */
   }
   const opts = { ...options, headers: { ...(options || {}).headers } };
+  const messageFilters = [];
 
   const initPromise = (resolve, reject) => {
     const ws = new WebSocket(url, protocols, opts);
@@ -285,17 +286,21 @@ function wsRequest(config, url, protocols, options) {
     ws.upgrade = upgrade.pop();
 
     ws.on('message', (data, isBinary) => {
+      let message;
       if (isBinary !== undefined) {
         // ws 8.x
-        ws.messages.push({ data, isBinary });
+        message = { data, isBinary };
       } else if (typeof data === 'string') {
         // ws 7.x
-        ws.messages.push({
+        message = {
           data: Buffer.from(data, 'utf8'),
           isBinary: false,
-        });
+        };
       } else {
-        ws.messages.push({ data, isBinary: true });
+        message = { data, isBinary: true };
+      }
+      if (messageFilters.every((fn) => fn(message))) {
+        ws.messages.push(message);
       }
     });
     ws.on('error', reject);
@@ -327,6 +332,33 @@ function wsRequest(config, url, protocols, options) {
     },
     unset(header) {
       delete opts.headers[findExistingHeader(opts.headers, header)];
+      return chain;
+    },
+    filterMessages(fn) {
+      messageFilters.push(fn);
+      return chain;
+    },
+    filterText(fn = () => true) {
+      messageFilters.push((m) => (m.isBinary ? false : fn(msgText(m))));
+      return chain;
+    },
+    filterJson(fn = () => true) {
+      messageFilters.push((m) => {
+        if (m.isBinary) {
+          return false;
+        }
+        let json;
+        try {
+          json = msgJson(m);
+        } catch {
+          return false;
+        }
+        return fn(json);
+      });
+      return chain;
+    },
+    filterBinary(fn = () => true) {
+      messageFilters.push((m) => (m.isBinary ? fn(msgBinary(m)) : false));
       return chain;
     },
   };

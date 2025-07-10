@@ -586,6 +586,70 @@ describe('superwstest', { parallel: true }, () => {
       .expectUpgrade((req) => req.statusCode === 101)
       .close();
   });
+
+  describe('filtering', () => {
+    it('skips past ignored text messages', async ({ [REQUEST]: request, [SERVER]: server }) => {
+      await request(server)
+        .ws('/path/ws')
+        .filterText((message) => message !== 'hello')
+        .sendBinary([1])
+        .sendText('foo')
+        .expectText('echo foo')
+        .close();
+    });
+
+    it('skips past ignored json messages', async ({ [REQUEST]: request, [SERVER]: server }) => {
+      await request(server)
+        .ws('/path/ws')
+        .filterJson((message) => message.isApp)
+        .sendBinary([1])
+        .sendText('nope')
+        .sendJson({ isApp: false, x: 1 })
+        .sendJson({ isApp: true, x: 2 })
+        .expectJson({ isApp: true, x: 2 })
+        .close();
+    });
+
+    it('skips past ignored binary messages', async ({ [REQUEST]: request, [SERVER]: server }) => {
+      await request(server)
+        .ws('/path/ws')
+        .filterBinary((message) => message[1] === 1)
+        .sendText('nope')
+        .sendBinary([0, 0])
+        .sendBinary([1, 2])
+        .expectBinary([111, 1, 2])
+        .close();
+    });
+
+    it('fails if a non-filtered message does not match the expectation', async ({
+      [REQUEST]: request,
+      [SERVER]: server,
+    }) => {
+      await expect(
+        () =>
+          request(server)
+            .ws('/path/ws')
+            .filterText((message) => message !== 'hello')
+            .sendText('foo')
+            .expectText('echo nope')
+            .close(),
+        throws(),
+      );
+    });
+
+    it('fails if the connection closes', async ({ [REQUEST]: request, [SERVER]: server }) => {
+      await expect(
+        () =>
+          request(server)
+            .ws('/path/ws')
+            .filterText((message) => message !== 'hello')
+            .sendText('trigger-server-close')
+            .expectText('echo nope')
+            .close(),
+        throws(),
+      );
+    });
+  });
 });
 
 describe('superwstest IPv6', () => {

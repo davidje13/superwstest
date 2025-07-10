@@ -27,6 +27,11 @@ declare module 'superwstest' {
     set(header: Record<string, string>): this;
     unset(header: string): this;
 
+    filterMessages(test: (message: ReceivedMessage) => boolean): this;
+    filterText(test?: (data: string) => boolean): this;
+    filterJson(test?: (data: any) => boolean): this;
+    filterBinary(test?: (data: Uint8Array) => boolean): this;
+
     send(
       message: any,
       options?:
