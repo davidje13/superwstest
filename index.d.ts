@@ -14,6 +14,7 @@ declare module 'superwstest' {
   }
 
   export interface ExpectMessageOptions {
+    eventually?: boolean | undefined;
     timeout?: number | undefined;
   }
 
