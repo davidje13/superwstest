@@ -1,3 +1,4 @@
+const { createServer } = require('node:http');
 const defaultRequire = require('superwstest');
 
 if (typeof defaultRequire !== 'function') {
@@ -8,6 +9,16 @@ if (typeof defaultRequire.default !== 'function') {
   throw new Error("require('superwstest').default did not return superwstest function");
 }
 
-if (typeof defaultRequire('http://localhost').get !== 'function') {
-  throw new Error('supertest proxy not connected');
-}
+// test proxying to supertest
+const server = createServer((req, res) => {
+  res.writeHead(req.url === '/path' ? 200 : 404);
+  res.end();
+});
+
+server.listen(0, '::1', async (err) => {
+  if (err) {
+    throw err;
+  }
+  await defaultRequire(server).get('/path').expect(200);
+  server.close();
+});

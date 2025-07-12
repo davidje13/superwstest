@@ -1,5 +1,5 @@
+import { promisify } from 'node:util';
 import WebSocket from 'ws';
-import { promisify } from 'util';
 import makeEchoServer from './helpers/echoserver.mjs';
 import withServer from './helpers/withServer.mjs';
 import withScopedRequest from './helpers/withScopedRequest.mjs';

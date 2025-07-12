@@ -1,6 +1,6 @@
 import request from 'superwstest';
-import { createServer as httpCreateServer } from 'http';
-import { createServer as httpsCreateServer } from 'https';
+import { createServer as httpCreateServer } from 'node:http';
+import { createServer as httpsCreateServer } from 'node:https';
 import { WebSocketServer } from 'ws';
 
 // this file just checks types; the code is not executed

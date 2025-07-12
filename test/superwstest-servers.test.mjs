@@ -1,5 +1,5 @@
-import http from 'http';
-import https from 'https';
+import http from 'node:http';
+import https from 'node:https';
 import { WebSocket, WebSocketServer } from 'ws';
 import { echo } from './helpers/echoserver.mjs';
 import withScopedRequest from './helpers/withScopedRequest.mjs';

@@ -1,4 +1,4 @@
-import http from 'http';
+import { createServer } from 'node:http';
 import { WebSocketServer } from 'ws';
 
 export const echo = (ws, req) => {
@@ -31,7 +31,7 @@ export const echo = (ws, req) => {
 };
 
 export default () => {
-  const server = http.createServer();
+  const server = createServer();
   new WebSocketServer({ server }).on('connection', echo);
   return server;
 };

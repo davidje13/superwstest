@@ -1,7 +1,7 @@
-import http from 'http';
+import { createServer } from 'node:http';
 
 export default () => {
-  const server = http.createServer((req, res) => {
+  const server = createServer((req, res) => {
     res.writeHead(404);
     res.end();
   });
