@@ -315,7 +315,10 @@ function wsRequest(config, url, protocols, options) {
     const ws = new WebSocket(url, protocols, opts);
     config.clientSockets.add(ws);
     const originalClose = ws.close.bind(ws);
+    let requestedClose = false;
     ws.close = (...args) => {
+      // we might get "WebSocket was closed before the connection was established", which can be ignored
+      requestedClose = true;
       originalClose(...args);
       config.clientSockets.delete(ws);
     };
@@ -349,14 +352,22 @@ function wsRequest(config, url, protocols, options) {
         ws.messages.push(message);
       }
     });
-    ws.on('error', reject);
+    ws.on('error', (err) => {
+      if (!requestedClose) {
+        reject(err);
+      }
+    });
     ws.on('close', (code, data) => {
       config.clientSockets.delete(ws);
       closed.push({ code, data });
     });
     ws.on('open', () => {
       ws.removeListener('error', reject);
-      ws.on('error', (err) => errors.push(err));
+      ws.on('error', (err) => {
+        if (!requestedClose) {
+          errors.push(err);
+        }
+      });
       resolve(ws);
     });
     ws.on('upgrade', (request) => {

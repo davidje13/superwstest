@@ -707,6 +707,14 @@ describe('superwstest', { parallel: true }, () => {
       );
     });
   });
+
+  it('gracefully handles syntax errors', async ({ [REQUEST]: request, [SERVER]: server }) => {
+    await expect(
+      () => request(server).ws('/path/ws').thisMethodDoesNotExist('response'),
+      throws('thisMethodDoesNotExist is not a function'),
+    );
+    request.closeAll();
+  });
 });
 
 describe('superwstest IPv6', () => {
