@@ -144,7 +144,7 @@ describe('thing', () => {
 - [request(...).ws(path[, protocols][, options])](#requestserverwspath-protocols-options)
   - [.set(header, value)](#setheader-value)
   - [.unset(header)](#unsetheader)
-  - [.filterMessages(test)](#filtertest)
+  - [.filterMessages(test)](#filtermessagestest)
   - [.filterText([test])](#filtertexttest)
   - [.filterJson([test])](#filterjsontest)
   - [.filterBinary([test])](#filterbinarytest)
