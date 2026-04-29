@@ -839,3 +839,20 @@ await Promise.all([
     .close(),
 ]);
 ```
+
+### Updating to version 3.x
+
+As of version 3, `@types/supertest` is an optional peer dependency, and the
+package exports have been tidied up. The package may no-longer work in old,
+unsupported versions of Node.js (prior to version 20).
+
+If you are using `supertest` and TypeScript, you will need to explicitly
+install the necessary types:
+
+```sh
+npm install --save-dev @types/supertest
+```
+
+If you are using the legacy `require('superwstest').default` syntax, you will
+need to drop the `.default`, or update to using the modern
+`import 'superwstest'` syntax.
