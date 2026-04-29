@@ -12,3 +12,8 @@ node:24:
   image: node:24
   script:
     - npm install-test
+
+node:25:
+  image: node:25
+  script:
+    - npm install-test
