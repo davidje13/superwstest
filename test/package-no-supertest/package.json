@@ -2,11 +2,11 @@
   "name": "superwstest-without-supertest-package-test",
   "private": true,
   "scripts": {
-    "test": "tsc"
+    "test": "node commonjs.js && node es6modules.mjs && tsc"
   },
   "devDependencies": {
     "@types/node": "24.x",
-    "superwstest": "file:superwstest.tgz",
+    "superwstest": "file:package.tgz",
     "typescript": "6.0.x"
   }
 }

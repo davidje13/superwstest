@@ -16,5 +16,6 @@ server.listen(0, '::1', async (err) => {
     throw err;
   }
   await defaultImport(server).get('/path').expect(200);
+  await defaultImport(server).ws('/foo').expectConnectionError(404);
   server.close();
 });

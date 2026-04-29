@@ -5,30 +5,24 @@ echo "Running package test...";
 echo;
 
 BASE_DIR="$(cd "$(dirname "$0")/.."; pwd)";
-cd "$BASE_DIR";
-rm superwstest-*.tgz 2>/dev/null || true;
-npm pack;
-rm test/package/superwstest.tgz 2>/dev/null || true;
-rm test/package-no-supertest/superwstest.tgz 2>/dev/null || true;
-cd - >/dev/null;
 
-cp "$BASE_DIR/superwstest-"*.tgz "$BASE_DIR/test/package/superwstest.tgz";
+rm "$BASE_DIR/test/package/package.tgz" 2>/dev/null || true;
+cp "$BASE_DIR/package.tgz" "$BASE_DIR/test/package/package.tgz";
+rm -rf "$BASE_DIR/test/package/node_modules/superwstest" || true;
 cd "$BASE_DIR/test/package";
-rm -rf node_modules/superwstest || true;
 npm install --audit=false;
-rm superwstest.tgz || true;
+rm package.tgz || true;
 npm test;
 cd - >/dev/null;
 
-cp "$BASE_DIR/superwstest-"*.tgz "$BASE_DIR/test/package-no-supertest/superwstest.tgz";
+rm "$BASE_DIR/test/package-no-supertest/package.tgz" 2>/dev/null || true;
+cp "$BASE_DIR/package.tgz" "$BASE_DIR/test/package-no-supertest/package.tgz";
+rm -rf "$BASE_DIR/test/package-no-supertest/node_modules/superwstest" || true;
 cd "$BASE_DIR/test/package-no-supertest";
-rm -rf node_modules/superwstest || true;
 npm install --audit=false;
-rm superwstest.tgz || true;
+rm package.tgz || true;
 npm test;
 cd - >/dev/null;
-
-rm "$BASE_DIR/superwstest-"*.tgz;
 
 echo;
 echo "Package test complete";

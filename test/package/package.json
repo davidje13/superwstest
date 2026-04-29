@@ -7,7 +7,7 @@
   "devDependencies": {
     "@types/node": "24.x",
     "@types/supertest": "7.x",
-    "superwstest": "file:superwstest.tgz",
+    "superwstest": "file:package.tgz",
     "supertest": "7.x",
     "typescript": "6.0.x"
   }

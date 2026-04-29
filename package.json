@@ -1,19 +1,22 @@
 {
   "name": "superwstest",
   "version": "2.1.1",
+  "private": true,
   "description": "supertest with added WebSocket capabilities",
-  "files": [
-    "build/**/*",
-    "src/**/*",
-    "index.d.ts",
-    "!**/.DS_Store"
-  ],
-  "main": "build/superwstest.js",
-  "module": "src/superwstest.mjs",
-  "types": "index.d.ts",
+  "main": "./superwstest.cjs",
+  "module": "./superwstest.mjs",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./superwstest.mjs",
+      "default": "./superwstest.cjs"
+    }
+  },
   "scripts": {
     "format": "prettier --write .",
-    "test": "lean-test test --parallel-suites && rollup --config rollup.config.mjs && test/run-package.sh && prettier --check ."
+    "test": "lean-test test --parallel-suites && test/build.sh && test/run-package.sh && prettier --check .",
+    "dopublish": "test/build.sh && npm publish package.tgz"
   },
   "repository": {
     "type": "git",

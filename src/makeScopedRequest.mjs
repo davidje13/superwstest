@@ -1,61 +1,8 @@
-'use strict';
-
-var node_util = require('node:util');
-var node_https = require('node:https');
-var node_net = require('node:net');
-var WebSocket = require('ws');
-
-function remove(list, item) {
-  const p = list.indexOf(item);
-  if (p !== -1) {
-    list.splice(p, 1);
-  }
-}
-
-class BlockingQueue {
-  constructor() {
-    this.pendingPush = [];
-    this.pendingPop = [];
-  }
-
-  push(o) {
-    if (this.pendingPop.length) {
-      const i = this.pendingPop.shift();
-      clearTimeout(i.tm);
-      i.resolve(o);
-    } else {
-      this.pendingPush.push(o);
-    }
-  }
-
-  pop(timeout) {
-    if (this.pendingPush.length) {
-      return Promise.resolve(this.pendingPush.shift());
-    }
-    return new Promise((resolve, reject) => {
-      const i = { resolve, tm: null };
-      this.pendingPop.push(i);
-      if (timeout !== undefined) {
-        i.tm = setTimeout(() => {
-          remove(this.pendingPop, i);
-          reject(new Error(`Timeout after ${timeout}ms`));
-        }, timeout);
-      }
-    });
-  }
-}
-
-// supertest is an optional dependency
-const stRequest = (() => {
-  try {
-    const m = require('supertest');
-    return m.default || m;
-  } catch (e) {
-    return fallbackSTRequest;
-  }
-})();
-// es6 with top-level await:
-//const stRequest = await import('supertest').then((m) => m.default, () => fallbackSTRequest);
+import { isDeepStrictEqual } from 'node:util';
+import { Server as HTTPSServer } from 'node:https';
+import { Server, Socket } from 'node:net';
+import WebSocket from 'ws';
+import { BlockingQueue } from './BlockingQueue.mjs';
 
 // fallback to an error when supertest methods are used
 function fallbackSTRequest() {
@@ -160,7 +107,7 @@ function checkMessage(check, received) {
   if (typeof check === 'function') {
     return check(received) !== false;
   } else {
-    return node_util.isDeepStrictEqual(received, check);
+    return isDeepStrictEqual(received, check);
   }
 }
 
@@ -477,7 +424,7 @@ async function performShutdown(sockets, shutdownDelay) {
   }
 
   [...sockets].forEach((s) => {
-    if (s instanceof node_net.Socket) {
+    if (s instanceof Socket) {
       s.end();
     } else if (s.close) {
       s.close(); // WebSocketServer
@@ -519,11 +466,11 @@ function registerShutdown(server, shutdownDelay) {
 const REGEXP_HTTP = /^http/;
 
 function getProtocol(server) {
-  if (!(server instanceof node_net.Server)) {
+  if (!(server instanceof Server)) {
     // could be WebSocketServer
     server = (server.options || {}).server || server;
   }
-  return server instanceof node_https.Server ? 'https' : 'http';
+  return server instanceof HTTPSServer ? 'https' : 'http';
 }
 
 function getHostname(address) {
@@ -556,7 +503,7 @@ function getHttpBase(server) {
   return `${getProtocol(server)}://${getHostname(address)}:${address.port}`;
 }
 
-function makeScopedRequest() {
+export function makeScopedRequest(stRequest = fallbackSTRequest) {
   const clientSockets = new Set();
 
   const request = (
@@ -584,14 +531,7 @@ function makeScopedRequest() {
     return remaining.length;
   };
 
-  request.scoped = () => makeScopedRequest();
+  request.scoped = () => makeScopedRequest(stRequest);
 
   return request;
 }
-
-const request = makeScopedRequest();
-
-// temporary backwards-compatibility for CommonJS require('superwstest').default
-request.default = request;
-
-module.exports = request;
