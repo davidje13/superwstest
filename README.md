@@ -15,7 +15,7 @@ npm install --save-dev superwstest
 You can also optionally install supertest for access to `.get`, `.post`, etc.:
 
 ```bash
-npm install --save-dev superwstest supertest
+npm install --save-dev superwstest supertest @types/supertest
 ```
 
 ## Usage
@@ -23,7 +23,7 @@ npm install --save-dev superwstest supertest
 ### Example server implementation
 
 ```javascript
-import http from 'http';
+import http from 'node:http';
 import WebSocket from 'ws';
 
 const server = http.createServer();
@@ -744,7 +744,7 @@ this reason supertest has become optional and not included by default
 To restore the ability to use `.get`, `.post`, etc. simply run:
 
 ```shell
-npm install --save-dev supertest
+npm install --save-dev supertest @types/supertest
 ```
 
 The presence of this package will detected automatically and the supertest

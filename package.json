@@ -35,21 +35,24 @@
   },
   "homepage": "https://github.com/davidje13/superwstest#readme",
   "dependencies": {
-    "@types/supertest": "*",
     "@types/ws": "7.x || 8.x",
     "ws": "7.x || 8.x"
   },
   "peerDependencies": {
+    "@types/supertest": "*",
     "supertest": "*"
   },
   "peerDependenciesMeta": {
+    "@types/supertest": {
+      "optional": true
+    },
     "supertest": {
       "optional": true
     }
   },
   "devDependencies": {
     "lean-test": "2.x",
-    "prettier": "3.6.2",
+    "prettier": "3.8.3",
     "rollup": "4.x"
   }
 }

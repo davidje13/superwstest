@@ -2,11 +2,13 @@
   "name": "superwstest-package-test",
   "private": true,
   "scripts": {
-    "test": "node commonjs.js && node es6modules.mjs && tsc typescript.ts --noEmit"
+    "test": "node commonjs.js && node es6modules.mjs && tsc"
   },
   "devDependencies": {
+    "@types/node": "24.x",
+    "@types/supertest": "7.x",
     "superwstest": "file:superwstest.tgz",
     "supertest": "7.x",
-    "typescript": "5.8.x"
+    "typescript": "6.0.x"
   }
 }

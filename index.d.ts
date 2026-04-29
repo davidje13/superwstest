@@ -1,8 +1,13 @@
 declare module 'superwstest' {
-  import type { Server } from 'net';
-  import type { ClientRequestArgs, IncomingMessage } from 'http';
+  import type { Server } from 'node:net';
+  import type { ClientRequestArgs, IncomingMessage } from 'node:http';
   import type { WebSocket, ClientOptions, WebSocketServer } from 'ws';
-  import type { SuperTest, Test } from 'supertest';
+
+  // import SuperTest type if available, else fall-back to SuperTest = {}
+  // @ts-ignore
+  import type { SuperTest as MaybeSuperTest } from 'supertest';
+  type IfKnown<T, Fallback> = 0 extends 1 & T ? Fallback : T;
+  type SuperTest = IfKnown<MaybeSuperTest, {}>;
 
   type JsonObject = { [member: string]: JsonValue };
   interface JsonArray extends Array<JsonValue> {}
@@ -120,7 +125,7 @@ declare module 'superwstest' {
     expectConnectionError(expectedCode?: number | string | null | undefined): Promise<WebSocket>;
   }
 
-  export interface SuperWSTest extends SuperTest<Test> {
+  export interface SuperWSTest extends SuperTest {
     ws(path: string, options?: ClientOptions | ClientRequestArgs | undefined): WSChain;
     ws(
       path: string,
